@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Surfing-Project</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light px-4">
+    <a class="navbar-brand" href="{% url 'home' %}">Surfing-Project</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarNav" aria-controls="navbarNav"
+            aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse show" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+
+            {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'profile' %}">@{{ user.username }}</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'profile_settings' %}">Edit profile</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link text-danger" href="{% url 'logout' %}">Logout</a>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a class="nav-link text-primary" href="{% url 'login' %}">Login</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link text-success" href="{% url 'register' %}">Register</a>
+                </li>
+            {% endif %}
+
+        </ul>
+    </div>
+</nav>
+
+<!-- STATUS (pomocne przy debugowaniu logowania) -->
+<div class="container mt-2">
+    {% if user.is_authenticated %}
+        <p class="text-danger small">STATUS: LOGGED IN as {{ user.username }}</p>
+    {% else %}
+        <p class="text-success small">STATUS: LOGGED OUT</p>
+    {% endif %}
+</div>
+
+<!-- MESSAGES -->
+<div class="container">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} mt-2">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<!-- MAIN CONTENT -->
+<main class="container my-4 flex-grow-1">
+    {% block content %}
+    {% endblock %}
+</main>
+
+<!-- FOOTER -->
+<footer class="text-center text-muted py-2 mt-auto">
+    © 2025 Eliasz Piotr
+</footer>
+
+<!-- Bootstrap JS (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

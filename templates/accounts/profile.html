@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Your Profile</h2>
+
+<p><strong>Username:</strong> {{ user.username }}</p>
+<p><strong>Email:</strong> {{ user.email }}</p>
+
+<hr>
+
+<h4>Profile details:</h4>
+<p><strong>Country:</strong> {{ user.profile.country }}</p>
+<p><strong>Bio:</strong> {{ user.profile.bio }}</p>
+
+<img src="{{ user.profile.profile_picture.url }}" width="120" class="rounded mt-2">
+
+<hr>
+
+<a href="{% url 'profile_settings' %}" class="btn btn-secondary mt-2">Edit profile</a>
+
+{% endblock %}
