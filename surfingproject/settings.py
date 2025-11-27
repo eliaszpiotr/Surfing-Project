@@ -41,12 +41,21 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Custom apps
     'accounts.apps.AccountsConfig',
-    'core.apps.CoreConfig'
+    'core.apps.CoreConfig',
+
+    # Third-party apps
+    'django_countries',
 
 ]
 
 AUTH_USER_MODEL = "accounts.CustomUser"
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "profile"
+LOGOUT_REDIRECT_URL = "/"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
