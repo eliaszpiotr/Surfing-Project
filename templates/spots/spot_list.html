@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Surf spots</h2>
+
+{% if spots %}
+    <div class="row">
+        {% for spot in spots %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="{% url 'spots:spot_detail' spot.slug %}">
+                                {{ spot.name }}
+                            </a>
+                        </h5>
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            {{ spot.country }} • {{ spot.get_difficulty_display }}
+                        </h6>
+                        {% if spot.description %}
+                            <p class="card-text">
+                                {{ spot.description|truncatechars:120 }}
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">
+                            Added by {{ spot.author.username }} on {{ spot.created_at|date:"Y-m-d" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>No spots yet. Be the first to add one.</p>
+{% endif %}
+{% endblock %}

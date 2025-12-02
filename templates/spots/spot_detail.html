@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+/>
+
+<style>
+    #spot-map {
+        height: 400px;
+        width: 100%;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<h2>{{ spot.name }}</h2>
+<p class="text-muted">
+    {{ spot.country }} •
+    {{ spot.get_difficulty_display }} •
+    {{ spot.get_surf_break_type_display }}
+</p>
+
+<!-- MAP -->
+{% if spot.latitude and spot.longitude %}
+    <div id="spot-map"></div>
+{% else %}
+    <p class="text-muted">No map location provided.</p>
+{% endif %}
+
+<!-- IMAGE -->
+{% if spot.image %}
+    <img src="{{ spot.image.url }}" class="img-fluid mb-3" alt="{{ spot.name }}">
+{% endif %}
+
+<h4>Description</h4>
+<p>{{ spot.description|default:"No description available" }}</p>
+
+<h4>Wave conditions</h4>
+<ul>
+    <li>Wave direction: {{ spot.get_wave_direction_display }}</li>
+
+    {% if spot.optimal_swell_direction %}
+        <li>Optimal swell: {{ spot.optimal_swell_direction }}</li>
+    {% endif %}
+
+    {% if spot.optimal_wind_direction %}
+        <li>Optimal wind: {{ spot.optimal_wind_direction }}</li>
+    {% endif %}
+</ul>
+
+<h4>Location details</h4>
+<p>{{ spot.location_details|default:"No details." }}</p>
+
+<hr>
+
+<a href="{% url 'spots:spot_list' %}" class="btn btn-secondary">Back to list</a>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+></script>
+
+{% if spot.latitude and spot.longitude %}
+<script>
+    const lat = {{ spot.latitude }};
+    const lon = {{ spot.longitude }};
+
+    const map = L.map("spot-map").setView([lat, lon], 11);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    L.marker([lat, lon])
+        .addTo(map)
+        .bindPopup("{{ spot.name|escapejs }}")
+        .openPopup();
+
+</script>
+{% endif %}
+
+{% endblock %}

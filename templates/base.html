@@ -8,6 +8,8 @@
 
     <!-- Bootstrap CSS (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    {% block extra_css %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100">
 
@@ -25,9 +27,14 @@
         <ul class="navbar-nav ms-auto">
 
             {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'spots:spot_list' %}">
+                        Spots list
+                    </a>
+                </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'spot_create' %}">
+                    <a class="nav-link" href="{% url 'spots:spot_create' %}">
                         Add spot
                     </a>
                 </li>
@@ -54,6 +61,11 @@
                 </li>
 
             {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'spots:spot_list' %}">
+                        Spots list
+                    </a>
+                </li>
 
                 <li class="nav-item">
                     <a class="nav-link text-primary" href="{% url 'login' %}">
@@ -66,7 +78,6 @@
                         Register
                     </a>
                 </li>
-
             {% endif %}
 
         </ul>
@@ -74,10 +85,10 @@
 </nav>
 
 <!-- MESSAGES -->
-<div class="container">
+<div class="container mt-2">
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} mt-2">
+            <div class="alert alert-{{ message.tags|default:'info' }}">
                 {{ message }}
             </div>
         {% endfor %}
@@ -97,12 +108,13 @@
 
 <!-- Bootstrap JS (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
     setTimeout(function() {
-        let alerts = document.querySelectorAll('.alert');
-        alerts.forEach(a => a.style.display = 'none');
-    }, 3000);
+        document.querySelectorAll('.alert').forEach(el => el.style.opacity = "0");
+    }, 2500);
 </script>
+
 {% block extra_js %}{% endblock %}
 
 </body>
