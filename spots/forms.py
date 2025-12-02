@@ -36,6 +36,6 @@ class SpotForm(forms.ModelForm):
                 attrs={"class": "form-control", "rows": 4}
             ),
             "image": forms.ClearableFileInput(attrs={"class": "form-control"}),
-            "latitude": forms.NumberInput(attrs={"class": "form-control"}),
-            "longitude": forms.NumberInput(attrs={"class": "form-control"}),
+            "latitude": forms.HiddenInput(),
+            "longitude": forms.HiddenInput(),
         }

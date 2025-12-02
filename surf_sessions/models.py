@@ -1,9 +1,18 @@
-from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import models
+
 from spots.models import Spot
 
 
 class Session(models.Model):
+    name = models.CharField(
+        max_length=100,
+        blank=False,
+        null=False,
+        help_text="A descriptive name for the session.",
+    )
+
     spot = models.ForeignKey(
         Spot,
         on_delete=models.CASCADE,
@@ -68,3 +77,7 @@ class Session(models.Model):
         if user == self.organizer:
             raise Exception("Organizer cannot be removed from their own session.")
         self.participants.remove(user)
+
+    def clean(self):
+        if not self.name or self.name.strip() == "":
+            raise ValidationError("Session name cannot be empty.")

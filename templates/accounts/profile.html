@@ -16,12 +16,19 @@
                          style="width: 150px; height: 150px;"></div>
                 {% endif %}
 
-                <h3>{{ request.user.get_full_name|default:request.user.email }}</h3>
+                <h3>{{ request.user.username|default:request.user.email }}</h3>
+                {% if request.user.first_name or request.user.last_name %}
+                    <p class="mb-1">
+                        <strong>
+                            {{ request.user.get_full_name }}
+                        </strong>
+                    </p>
+                {% endif %}
 
                 {% if profile and profile.country %}
                     <p class="mb-1">
                         Country:
-                        <strong>{{ profile.country }}</strong>
+                        <strong>{{ profile.country.name }}</strong>
                     </p>
                 {% endif %}
 

@@ -1,5 +1,14 @@
 from django.shortcuts import render
+from django.utils.timezone import localdate
+from surf_sessions.models import Session
 
-# Create your views here.
 def home(request):
-    return render(request, "core/home.html")
+    today = localdate()
+    upcoming_sessions = (
+        Session.objects.filter(date__gte=today)
+        .select_related("spot", "organizer")
+        .order_by("date", "start_time")[:10]
+    )
+    return render(request, "core/home.html", {
+        "upcoming_sessions": upcoming_sessions,
+    })

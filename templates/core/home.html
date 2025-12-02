@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_css %}
     <!-- Leaflet CSS -->
@@ -30,12 +31,75 @@
 {% endblock %}
 
 {% block content %}
+    {# MAPA #}
     <h2>Surf spots map</h2>
     <p class="text-muted">
         All surf spots currently in the database are shown on the map.
     </p>
 
     <div id="home-map"></div>
+
+    <hr class="my-4">
+
+    {# UPCOMING SESSIONS #}
+    <h2>Upcoming sessions</h2>
+
+    {% if user.is_authenticated %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <p class="mb-0">
+                Here you can see all upcoming surf sessions created by users.
+            </p>
+
+            <a href="{% url 'surf_sessions:session_create' %}" class="btn btn-primary btn-sm">
+                Create new session
+            </a>
+        </div>
+
+        {% if upcoming_sessions %}
+            <div class="list-group">
+                {% for s in upcoming_sessions %}
+                    <a href="{% url 'surf_sessions:session_detail' s.pk %}"
+                       class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">
+                                {{ s.name }} at {{ s.spot.name }} ({{ s.spot.country }})
+                            </h5>
+                            <small>
+                                <strong>{{ s.date|date:"M j, Y" }}</strong>
+                                at {{ s.start_time|time:"H:i" }}
+                                {% if s.end_time %} – {{ s.end_time|time:"H:i" }}{% endif %}
+                            </small>
+                        </div>
+                        <p class="mb-1">
+                            Organizer: {{ s.organizer.username }}<br>
+                            Participants: {{ s.participants_count }}
+                            {% if s.max_participants %}/ {{ s.max_participants }}{% endif %}
+                            {% if s.is_full %}
+                                <span class="badge bg-danger ms-2">Full</span>
+                            {% endif %}
+                        </p>
+                        {% if s.note %}
+                            <small class="text-muted">
+                                {{ s.note|truncatechars:80 }}
+                            </small>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No upcoming sessions yet.</p>
+        {% endif %}
+    {% else %}
+        <p class="mt-3">
+            You must be logged in to view upcoming sessions.
+        </p>
+
+        <a href="{% url 'accounts:login' %}?next={{ request.path }}"
+           class="btn btn-outline-primary btn-sm">
+            Log in
+        </a>
+    {% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -51,12 +115,17 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // Start position – Europa/środkowy Bałtyk
-            const map = L.map("home-map").setView([54.5, 18.5], 4);
+            const map = L.map("home-map", {
+                center: [54.5, 18.5],
+                zoom: 4,
+                worldCopyJump: true
+            });
+
+            map.attributionControl.setPrefix(false);
 
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors',
+                attribution: "&copy; OpenStreetMap contributors",
             }).addTo(map);
 
             const markers = L.markerClusterGroup();

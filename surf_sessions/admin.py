@@ -5,12 +5,9 @@ from .models import Session
 
 @admin.register(Session)
 class SessionAdmin(admin.ModelAdmin):
-    """
-    Admin configuration for surf surf_sessions.
-    """
-
     list_display = (
         "spot",
+        "name",
         "date",
         "start_time",
         "organizer",

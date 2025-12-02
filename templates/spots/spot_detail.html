@@ -3,10 +3,10 @@
 {% block extra_css %}
     <!-- Leaflet CSS for spot map -->
     <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin=""
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+            crossorigin=""
     >
     <style>
         #spot-map {
@@ -18,139 +18,142 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- LEFT COLUMN – spot info -->
-    <div class="col-md-6">
-        <h2>{{ spot.name }}</h2>
-        <p class="text-muted mb-1">
-            Country: {{ spot.country }}
-        </p>
-        <p class="text-muted mb-3">
-            Added by {{ spot.author.username }} on {{ spot.created_at|date:"Y-m-d" }}
-        </p>
-
-        {% if spot.description %}
-            <h5>Description</h5>
-            <p>{{ spot.description }}</p>
-        {% endif %}
-
-        <h5>Surf details</h5>
-        <ul>
-            <li>Difficulty: {{ spot.get_difficulty_display }}</li>
-            <li>Break type: {{ spot.get_surf_break_type_display }}</li>
-            <li>Wave direction: {{ spot.get_wave_direction_display }}</li>
-        </ul>
-
-        <h5>Best conditions</h5>
-        <ul>
-            <li>Swell direction: {{ spot.optimal_swell_direction|default:"No data" }}</li>
-            <li>Wind direction: {{ spot.optimal_wind_direction|default:"No data" }}</li>
-        </ul>
-
-        {% if spot.location_details %}
-            <h5>Location details</h5>
-            <p>{{ spot.location_details }}</p>
-        {% endif %}
-
-        {% if user.is_authenticated and user.is_staff %}
-            <hr>
-            <div class="mb-3">
-                <a href="{% url 'spots:spot_update' spot.slug %}"
-                   class="btn btn-outline-primary btn-sm me-2">
-                    Edit spot
-                </a>
-                <a href="{% url 'spots:spot_delete' spot.slug %}"
-                   class="btn btn-outline-danger btn-sm">
-                    Delete spot
-                </a>
-            </div>
-        {% endif %}
-
-        <hr>
-
-        <!-- UPCOMING SESSIONS -->
-        <h3>Upcoming sessions</h3>
-
-        {% if upcoming_sessions %}
-            <div class="list-group mb-3">
-                {% for s in upcoming_sessions %}
-                    <a href="{% url 'surf_sessions:session_detail' s.pk %}"
-                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-
-                        <div>
-                            <strong>{{ s.date|date:"M j, Y" }}</strong>
-                            at {{ s.start_time|time:"H:i" }}
-                            {% if s.end_time %} – {{ s.end_time|time:"H:i" }}{% endif %}
-                            · organized by {{ s.organizer.username }}
-
-                            <div class="text-muted small">
-                                Participants: {{ s.participants_count }}
-                                {% if s.max_participants %}
-                                    / {{ s.max_participants }}
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        {% if user.is_authenticated and  user in s.participants.all %}
-                            <span class="badge bg-success">Joined</span>
-                        {% endif %}
-                    </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="text-muted">No upcoming sessions for this spot yet.</p>
-        {% endif %}
-
-        {% if user.is_authenticated %}
-            <a href="{% url 'surf_sessions:session_create' %}?spot={{ spot.pk }}"
-               class="btn btn-success btn-sm">
-                Create session for this spot
-            </a>
-        {% else %}
-            <p class="mt-2">
-                <a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a>
-                to create a session for this spot.
+    <div class="row">
+        <!-- LEFT COLUMN – spot info -->
+        <div class="col-md-6">
+            <h2>{{ spot.name }}</h2>
+            <p class="text-muted mb-1">
+                Country: {{ spot.country.name }}
             </p>
-        {% endif %}
-    </div>
+            <p class="text-muted mb-3">
+                Added by {{ spot.author.username }} on {{ spot.created_at|date:"Y-m-d" }}
+            </p>
 
-    <!-- RIGHT COLUMN – map -->
-    <div class="col-md-6">
-        <h5>Spot location</h5>
-        {% if spot.latitude and spot.longitude %}
-            <div id="spot-map"></div>
-        {% else %}
-            <p class="text-muted">No coordinates for this spot yet.</p>
-        {% endif %}
+            {% if spot.description %}
+                <h5>Description</h5>
+                <p>{{ spot.description }}</p>
+            {% endif %}
+
+            <h5>Surf details</h5>
+            <ul>
+                <li>Difficulty: {{ spot.get_difficulty_display }}</li>
+                <li>Break type: {{ spot.get_surf_break_type_display }}</li>
+                <li>Wave direction: {{ spot.get_wave_direction_display }}</li>
+            </ul>
+
+            <h5>Best conditions</h5>
+            <ul>
+                <li>Swell direction: {{ spot.optimal_swell_direction|default:"No data" }}</li>
+                <li>Wind direction: {{ spot.optimal_wind_direction|default:"No data" }}</li>
+            </ul>
+
+            {% if spot.location_details %}
+                <h5>Location details</h5>
+                <p>{{ spot.location_details }}</p>
+            {% endif %}
+
+            {% if user.is_authenticated and user.is_staff %}
+                <hr>
+                <div class="mb-3">
+                    <a href="{% url 'spots:spot_update' spot.slug %}"
+                       class="btn btn-outline-primary btn-sm me-2">
+                        Edit spot
+                    </a>
+                    <a href="{% url 'spots:spot_delete' spot.slug %}"
+                       class="btn btn-outline-danger btn-sm">
+                        Delete spot
+                    </a>
+                </div>
+            {% endif %}
+
+            <hr>
+
+            <!-- UPCOMING SESSIONS -->
+            <h3>Upcoming sessions</h3>
+
+            {% if upcoming_sessions %}
+                <div class="list-group mb-3">
+                    {% for s in upcoming_sessions %}
+                        <a href="{% url 'surf_sessions:session_detail' s.pk %}"
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+
+                            <div>
+                                <strong>{{ s.name }}</strong>
+                                <div class="text-muted small">
+                                    <strong>{{ s.date|date:"M j, Y" }}</strong> at {{ s.start_time|time:"H:i" }}
+                                    {% if s.end_time %} – {{ s.end_time|time:"H:i" }}{% endif %}
+                                    · organized by {{ s.organizer.username }}
+                                </div>
+
+                                <div class="text-muted small">
+                                    Participants: {{ s.participants_count }}
+                                    {% if s.max_participants %}
+                                        / {{ s.max_participants }}
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if user.is_authenticated and  user in s.participants.all %}
+                                <span class="badge bg-success">Joined</span>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No upcoming sessions for this spot yet.</p>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+                <a href="{% url 'surf_sessions:session_create' %}?spot={{ spot.pk }}"
+                   class="btn btn-success btn-sm">
+                    Create session for this spot
+                </a>
+            {% else %}
+                <p class="mt-2">
+                    <a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a>
+                    to create a session for this spot.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- RIGHT COLUMN – map -->
+        <div class="col-md-6">
+            <h5>Spot location</h5>
+            {% if spot.latitude and spot.longitude %}
+                <div id="spot-map"></div>
+            {% else %}
+                <p class="text-muted">No coordinates for this spot yet.</p>
+            {% endif %}
+        </div>
     </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
     <!-- Leaflet JS -->
     <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin="">
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin="">
     </script>
 
     {% if spot.latitude and spot.longitude %}
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const lat = {{ spot.latitude }};
-            const lng = {{ spot.longitude }};
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const lat = {{ spot.latitude }};
+                const lng = {{ spot.longitude }};
 
-            const map = L.map('spot-map').setView([lat, lng], 11);
+                const map = L.map('spot-map').setView([lat, lng], 11);
+                map.attributionControl.setPrefix(false);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 18,
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
 
-            L.marker([lat, lng]).addTo(map)
-                .bindPopup("{{ spot.name|escapejs }}")
-                .openPopup();
-        });
-    </script>
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup("{{ spot.name|escapejs }}")
+                    .openPopup();
+            });
+        </script>
     {% endif %}
 {% endblock %}

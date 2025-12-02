@@ -27,6 +27,7 @@
         <ul class="navbar-nav ms-auto">
 
             {% if user.is_authenticated %}
+
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'spots:spot_list' %}">
                         Spots list
@@ -46,12 +47,6 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'accounts:profile_settings' %}">
-                        Edit profile
-                    </a>
-                </li>
-
-                <li class="nav-item">
                     <form action="{% url 'accounts:logout' %}" method="post" class="d-inline">
                         {% csrf_token %}
                         <button type="submit" class="nav-link text-danger border-0 bg-transparent">
@@ -61,6 +56,7 @@
                 </li>
 
             {% else %}
+
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'spots:spot_list' %}">
                         Spots list
@@ -110,7 +106,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    setTimeout(function() {
+    setTimeout(function () {
         document.querySelectorAll('.alert').forEach(el => el.style.opacity = "0");
     }, 2500);
 </script>

@@ -43,13 +43,24 @@ class SessionCreateView(LoginRequiredMixin, CreateView):
     form_class = SessionForm
     template_name = "surf_sessions/session_form.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        spot_id = request.GET.get("spot")
+        if not spot_id:
+            messages.error(request, "Choose a surf spot first.")
+            return redirect("spots:spot_list")
+
+        self.spot = get_object_or_404(Spot, pk=spot_id)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["spot"] = self.spot
+        return context
+
     def form_valid(self, form):
         session = form.save(commit=False)
         session.organizer = self.request.user
-
-        spot_id = self.request.GET.get("spot")
-        session.spot = get_object_or_404(Spot, pk=spot_id)
-
+        session.spot = self.spot
         session.save()
         messages.success(self.request, "Session created successfully!")
         return redirect("spots:spot_detail", slug=session.spot.slug)
