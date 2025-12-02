@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
@@ -12,7 +13,6 @@ from .forms import SpotForm
 
 
 class SpotAuthorOrStaffRequiredMixin(UserPassesTestMixin):
-
     def test_func(self):
         spot = self.get_object()
         user = self.request.user
@@ -26,9 +26,63 @@ class SpotAuthorOrStaffRequiredMixin(UserPassesTestMixin):
 
 
 class SpotListView(ListView):
+    """
+    List of surf spots with optional filtering by country, difficulty and text search.
+    """
     model = Spot
     template_name = "spots/spot_list.html"
     context_object_name = "spots"
+
+    def get_queryset(self):
+        """
+        Apply filters based on GET parameters:
+        - country: exact match on country code
+        - difficulty: exact match on difficulty choice
+        - q: case-insensitive partial match on spot name
+        """
+        qs = Spot.objects.all()
+
+        country = self.request.GET.get("country") or ""
+        difficulty = self.request.GET.get("difficulty") or ""
+        query = self.request.GET.get("q") or ""
+
+        if country:
+            qs = qs.filter(country=country)
+
+        if difficulty:
+            qs = qs.filter(difficulty=difficulty)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query.strip())
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        """
+        Add filter options to context so template can render dropdowns.
+        """
+        context = super().get_context_data(**kwargs)
+
+        # Distinct country values present in the database
+        context["countries"] = (
+            Spot.objects.exclude(country__isnull=True)
+            .exclude(country__exact="")
+            .values_list("country", flat=True)
+            .distinct()
+            .order_by("country")
+        )
+
+        # Use choices from the model (Difficulty enum)
+        context["difficulties"] = Spot.Difficulty.choices
+
+        # Keep current filter values to pre-fill the form
+        context["current_country"] = self.request.GET.get("country", "")
+        context["current_difficulty"] = self.request.GET.get("difficulty", "")
+        context["current_query"] = self.request.GET.get("q", "")
+
+        return context
 
 
 class SpotDetailView(DetailView):
@@ -77,15 +131,17 @@ class SpotUpdateView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, UpdateV
     redirect_field_name = "next"
 
     def form_valid(self, form):
+        """
+        Keep author unchanged and only update user-editable fields.
+        """
         spot = form.save(commit=False)
-        spot.author = self.get_object().author  # ensure author stays the same
+        spot.author = self.get_object().author
         spot.save()
         messages.success(self.request, f"Surf spot '{spot.name}' has been updated successfully!")
         self.object = spot
         return super().form_valid(form)
 
     def get_success_url(self):
-        # Better UX: go back to detail page, not list
         return reverse_lazy("spots:spot_detail", kwargs={"slug": self.object.slug})
 
 

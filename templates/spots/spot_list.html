@@ -3,6 +3,60 @@
 {% block content %}
 <h2>Surf spots</h2>
 
+<!-- FILTER FORM -->
+<form method="get" class="row g-2 mb-4 align-items-end">
+
+    <!-- Country filter -->
+    <div class="col-md-3">
+        <label for="id_country" class="form-label">Country</label>
+        <select name="country" id="id_country" class="form-select">
+            <option value="">All countries</option>
+            {% for c in countries %}
+                <option value="{{ c }}" {% if c == current_country %}selected{% endif %}>
+                    {{ c }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Difficulty filter -->
+    <div class="col-md-3">
+        <label for="id_difficulty" class="form-label">Difficulty</label>
+        <select name="difficulty" id="id_difficulty" class="form-select">
+            <option value="">All levels</option>
+            {% for value, label in difficulties %}
+                <option value="{{ value }}" {% if value == current_difficulty %}selected{% endif %}>
+                    {{ label }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Text search -->
+    <div class="col-md-3">
+        <label for="id_q" class="form-label">Search by name</label>
+        <input type="text"
+               name="q"
+               id="id_q"
+               class="form-control"
+               placeholder="Hel, Chałupy..."
+               value="{{ current_query }}">
+    </div>
+
+    <!-- Buttons -->
+    <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary mt-auto">
+            Apply filters
+        </button>
+        <a href="{% url 'spots:spot_list' %}" class="btn btn-secondary mt-auto">
+            Reset
+        </a>
+    </div>
+</form>
+
+<hr>
+
+<!-- SPOTS LIST -->
 {% if spots %}
     <div class="row">
         {% for spot in spots %}
@@ -33,6 +87,6 @@
         {% endfor %}
     </div>
 {% else %}
-    <p>No spots yet. Be the first to add one.</p>
+    <p>No spots found for selected filters.</p>
 {% endif %}
 {% endblock %}
