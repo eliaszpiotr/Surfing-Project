@@ -60,7 +60,7 @@
         {% endif %}
     {% elif not user.is_authenticated %}
         <p class="mt-2">
-            <a href="{% url 'login' %}?next={{ request.path }}">Log in</a> to join this session.
+            <a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a> to join this session.
         </p>
     {% endif %}
 
@@ -78,7 +78,7 @@
             {% for p in session.participants.all %}
                 {% if p != session.organizer %}
                     <li class="list-group-item">
-                        {{ p.username }}
+                            {{ p.username }}
                     </li>
                 {% endif %}
             {% endfor %}

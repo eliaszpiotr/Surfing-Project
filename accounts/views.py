@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect
@@ -9,10 +9,13 @@ from django.views import View
 from django.views.generic import TemplateView
 from django.views.generic.edit import FormView, UpdateView
 
-from .forms import CustomUserCreationForm, UserProfileForm
+from .forms import (
+    CustomUserCreationForm,
+    UserProfileForm,
+    CustomAuthenticationForm,
+)
 from .models import UserProfile
 from surf_sessions.models import Session
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -20,10 +23,14 @@ User = get_user_model()
 class RegisterView(FormView):
     template_name = "accounts/register.html"
     form_class = CustomUserCreationForm
-    success_url = reverse_lazy("profile_settings")
+    success_url = reverse_lazy("accounts:profile_settings")
 
     def form_valid(self, form):
         user = form.save()
+
+        # upewniamy się, że profil istnieje
+        UserProfile.objects.get_or_create(user=user)
+
         login(self.request, user)
         messages.success(self.request, "Your account has been created.")
         return super().form_valid(form)
@@ -35,6 +42,7 @@ class RegisterView(FormView):
 
 class CustomLoginView(LoginView):
     template_name = "accounts/login.html"
+    authentication_form = CustomAuthenticationForm
     redirect_authenticated_user = True
 
     def get_success_url(self):
@@ -49,7 +57,6 @@ class CustomLoginView(LoginView):
 
 
 class LogoutView(View):
-
     def post(self, request):
         logout(request)
         messages.success(request, "You have been logged out.")
@@ -58,17 +65,15 @@ class LogoutView(View):
 
 class ProfileView(LoginRequiredMixin, TemplateView):
     template_name = "accounts/profile.html"
-    login_url = "login"
+    login_url = "accounts:login"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         today = now().date()
 
-        # User profile object
         profile = getattr(user, "profile", None)
 
-        # Sessions where the user is organizer (upcoming)
         organized_sessions = (
             Session.objects.filter(organizer=user, date__gte=today)
             .select_related("spot")
@@ -76,7 +81,6 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             .order_by("date", "start_time")
         )
 
-        # Sessions where the user is a participant but not organizer (upcoming)
         joined_sessions = (
             Session.objects.filter(participants=user, date__gte=today)
             .exclude(organizer=user)
@@ -95,8 +99,8 @@ class ProfileSettingsView(LoginRequiredMixin, UpdateView):
     model = UserProfile
     form_class = UserProfileForm
     template_name = "accounts/profile_settings.html"
-    success_url = reverse_lazy("profile")
-    login_url = "login"
+    success_url = reverse_lazy("accounts:profile")
+    login_url = "accounts:login"
 
     def get_object(self, queryset=None):
         return self.request.user.profile

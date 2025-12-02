@@ -1,12 +1,46 @@
 {% extends "base.html" %}
+
 {% block content %}
+<div class="row">
+    <div class="col-md-6 col-lg-5">
 
-<h2>Edit Profile</h2>
+        <h2 class="mb-4">Edit profile</h2>
 
-<form method="post" enctype="multipart/form-data" class="w-50">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-warning mt-3">Save</button>
-</form>
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {{ form.non_field_errors }}
 
+            <div class="mb-3">
+                {{ form.profile_picture.label_tag }}
+                {{ form.profile_picture }}
+                {% for error in form.profile_picture.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.country.label_tag }}
+                {{ form.country }}
+                {% for error in form.country.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.bio.label_tag }}
+                {{ form.bio }}
+                {% for error in form.bio.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-success mt-2">
+                Save
+            </button>
+            <a href="{% url 'accounts:profile' %}" class="btn btn-secondary mt-2">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>
 {% endblock %}

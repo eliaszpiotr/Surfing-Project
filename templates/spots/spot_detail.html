@@ -108,7 +108,7 @@
             </a>
         {% else %}
             <p class="mt-2">
-                <a href="{% url 'login' %}?next={{ request.path }}">Log in</a>
+                <a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a>
                 to create a session for this spot.
             </p>
         {% endif %}

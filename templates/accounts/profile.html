@@ -1,88 +1,117 @@
-{# templates/accounts/profile.html #}
 {% extends "base.html" %}
 
 {% block content %}
 <div class="row">
     <div class="col-md-4">
+        <!-- Avatar + basic info -->
         <div class="card mb-3">
             <div class="card-body text-center">
-                {% if user.profile.profile_picture %}
-                    <img src="{{ user.profile.profile_picture.url }}" class="img-fluid rounded-circle mb-3"
-                         alt="Profile picture" style="max-width: 150px;">
+                {% if profile and profile.profile_picture %}
+                    <img src="{{ profile.profile_picture.url }}"
+                         alt="Profile picture"
+                         class="img-fluid rounded-circle mb-3"
+                         style="max-width: 150px;">
+                {% else %}
+                    <div class="bg-secondary rounded-circle mb-3"
+                         style="width: 150px; height: 150px;"></div>
                 {% endif %}
 
-                <h4>{{ user.username }}</h4>
-                <p class="text-muted mb-1">{{ user.email }}</p>
+                <h3>{{ request.user.get_full_name|default:request.user.email }}</h3>
 
-                {% if user.profile.country %}
-                    <p class="mb-0">{{ user.profile.country }}</p>
+                {% if profile and profile.country %}
+                    <p class="mb-1">
+                        Country:
+                        <strong>{{ profile.country }}</strong>
+                    </p>
                 {% endif %}
 
-                {% if user.profile.bio %}
-                    <p class="mt-2">{{ user.profile.bio }}</p>
-                {% endif %}
-
-                <a href="{% url 'profile_settings' %}" class="btn btn-outline-primary btn-sm mt-2">
+                <a href="{% url 'accounts:profile_settings' %}"
+                   class="btn btn-outline-primary btn-sm mt-2">
                     Edit profile
                 </a>
+            </div>
+        </div>
+
+        <!-- Bio -->
+        <div class="card">
+            <div class="card-header">About</div>
+            <div class="card-body">
+                {% if profile and profile.bio %}
+                    <p>{{ profile.bio }}</p>
+                {% else %}
+                    <p class="text-muted">
+                        You have not added any bio yet.
+                    </p>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <div class="col-md-8">
+        <!-- Organized sessions -->
+        <div class="mb-4">
+            <h4>Organized sessions</h4>
+            {% if organized_sessions %}
+                <ul class="list-group mb-3">
+                    {% for session in organized_sessions %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <a href="{% url 'surf_sessions:session_detail' session.pk %}">
+                                    {{ session.spot.name }}
+                                </a>
+                                <div class="text-muted small">
+                                    {{ session.date }} · {{ session.start_time|time:"H:i" }}
+                                    {% if session.end_time %}
+                                        – {{ session.end_time|time:"H:i" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="badge bg-secondary">
+                                {{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">
+                    You are not organizing any upcoming sessions.
+                </p>
+            {% endif %}
+        </div>
 
-        {# SESSIONS I ORGANIZE #}
-        <h5>Sessions I organize</h5>
-        {% if organized_sessions %}
-            <div class="list-group mb-4">
-                {% for s in organized_sessions %}
-                    <a href="{% url 'surf_sessions:session_detail' s.pk %}"
-                       class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">{{ s.spot.name }}</h6>
-                            <small>{{ s.date }} {{ s.start_time|time:"H:i" }}</small>
-                        </div>
-                        <small class="text-muted">
-                            {{ s.spot.country }} – {{ s.spot.name }}
-                            {% if s.max_participants %}
-                                • {{ s.participants_count }}/{{ s.max_participants }} surfers
-                            {% else %}
-                                • {{ s.participants_count }} surfers
-                            {% endif %}
-                        </small>
-                    </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="text-muted mb-4">You are not organizing any sessions yet.</p>
-        {% endif %}
-
-        {# SESSIONS I JOINED #}
-        <h5>Sessions I joined</h5>
-        {% if joined_sessions %}
-            <div class="list-group">
-                {% for s in joined_sessions %}
-                    <a href="{% url 'surf_sessions:session_detail' s.pk %}"
-                       class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">{{ s.spot.name }}</h6>
-                            <small>{{ s.date }} {{ s.start_time|time:"H:i" }}</small>
-                        </div>
-                        <small class="text-muted">
-                            Organizer: {{ s.organizer.username }}
-                            {% if s.max_participants %}
-                                • {{ s.participants_count }}/{{ s.max_participants }} surfers
-                            {% else %}
-                                • {{ s.participants_count }} surfers
-                            {% endif %}
-                        </small>
-                    </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="text-muted">You have not joined any sessions yet.</p>
-        {% endif %}
-
+        <!-- Joined sessions -->
+        <div>
+            <h4>Joined sessions</h4>
+            {% if joined_sessions %}
+                <ul class="list-group mb-3">
+                    {% for session in joined_sessions %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <a href="{% url 'surf_sessions:session_detail' session.pk %}">
+                                    {{ session.spot.name }}
+                                </a>
+                                <div class="text-muted small">
+                                    {{ session.date }} · {{ session.start_time|time:"H:i" }}
+                                    {% if session.end_time %}
+                                        – {{ session.end_time|time:"H:i" }}
+                                    {% endif %}
+                                </div>
+                                <div class="small">
+                                    Organizer: {{ session.organizer.email }}
+                                </div>
+                            </div>
+                            <span class="badge bg-secondary">
+                                {{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">
+                    You have not joined any upcoming sessions.
+                </p>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}
