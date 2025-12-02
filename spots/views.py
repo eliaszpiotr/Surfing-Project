@@ -7,6 +7,9 @@ from django.utils.text import slugify
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 import uuid
+from django.core.paginator import Paginator
+from django.template.loader import render_to_string
+from django.views import View
 
 from .forms import SpotForm
 from .models import Spot
@@ -31,8 +34,9 @@ class SpotListView(ListView):
     model = Spot
     template_name = "spots/spot_list.html"
     context_object_name = "spots"
+    paginate_by = 21
 
-    def get_queryset(self):
+    def get_filtered_queryset(self):
         qs = Spot.objects.all()
 
         country = self.request.GET.get("country") or ""
@@ -50,6 +54,9 @@ class SpotListView(ListView):
 
         return qs
 
+    def get_queryset(self):
+        return self.get_filtered_queryset()
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -66,7 +73,38 @@ class SpotListView(ListView):
         context["current_difficulty"] = self.request.GET.get("difficulty", "")
         context["current_query"] = self.request.GET.get("q", "")
 
+        # Needed for load-more initial state
+        context["has_next_page"] = context["page_obj"].has_next()
+
         return context
+
+
+class SpotListLoadMoreView(View):
+
+    def get(self, request):
+        page = int(request.GET.get("page", 1))
+
+        # Reuse the filtering logic from SpotListView
+        list_view = SpotListView()
+        list_view.request = request
+        queryset = list_view.get_filtered_queryset()
+
+        paginator = Paginator(queryset, 21)
+        page_obj = paginator.get_page(page)
+
+        html = render_to_string(
+            "spots/_spot_cards.html",
+            {"spots": page_obj.object_list},
+            request=request,
+        )
+
+        return JsonResponse(
+            {
+                "html": html,
+                "has_next": page_obj.has_next(),
+                "next_page": page + 1,
+            }
+        )
 
 
 class SpotDetailView(DetailView):

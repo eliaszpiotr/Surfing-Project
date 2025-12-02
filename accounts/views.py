@@ -12,6 +12,9 @@ from django.views.generic.edit import FormView, UpdateView
 from .forms import CustomUserCreationForm, UserProfileForm
 from .models import UserProfile
 from surf_sessions.models import Session
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class RegisterView(FormView):

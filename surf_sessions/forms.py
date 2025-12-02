@@ -1,55 +1,27 @@
 from django import forms
-
 from .models import Session
 
 
 class SessionForm(forms.ModelForm):
-    """
-    Form for creating/updating a surf session.
-
-    The Spot is NOT chosen in the form – it is injected in the view
-    (we always create a session for a given spot).
-    """
-
     class Meta:
         model = Session
-        fields = [
-            "date",
-            "start_time",
-            "end_time",
-            "max_participants",
-            "note",
-        ]
+        fields = ["spot", "date", "start_time", "end_time", "max_participants", "note"]
         widgets = {
-            "date": forms.DateInput(
-                attrs={
-                    "type": "date",
-                    "class": "form-control",
-                }
-            ),
-            "start_time": forms.TimeInput(
-                attrs={
-                    "type": "time",
-                    "class": "form-control",
-                }
-            ),
-            "end_time": forms.TimeInput(
-                attrs={
-                    "type": "time",
-                    "class": "form-control",
-                }
-            ),
-            "max_participants": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "min": 1,
-                }
-            ),
-            "note": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Meeting point, expected level, extra info...",
-                }
-            ),
+            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "start_time": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+            "end_time": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+            "max_participants": forms.NumberInput(attrs={"class": "form-control"}),
+            "note": forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Style spot select
+        if "spot" in self.fields:
+            self.fields["spot"].widget.attrs.update({"class": "form-select"})
+
+        # If spot is prefilled (coming from spot detail), hide the field
+        initial_spot = self.initial.get("spot") or getattr(self.instance, "spot", None)
+        if initial_spot is not None:
+            self.fields["spot"].widget = forms.HiddenInput()

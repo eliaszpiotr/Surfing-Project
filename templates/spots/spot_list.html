@@ -58,35 +58,75 @@
 
 <!-- SPOTS LIST -->
 {% if spots %}
-    <div class="row">
-        {% for spot in spots %}
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="{% url 'spots:spot_detail' spot.slug %}">
-                                {{ spot.name }}
-                            </a>
-                        </h5>
-                        <h6 class="card-subtitle mb-2 text-muted">
-                            {{ spot.country }} • {{ spot.get_difficulty_display }}
-                        </h6>
-                        {% if spot.description %}
-                            <p class="card-text">
-                                {{ spot.description|truncatechars:120 }}
-                            </p>
-                        {% endif %}
-                    </div>
-                    <div class="card-footer">
-                        <small class="text-muted">
-                            Added by {{ spot.author.username }} on {{ spot.created_at|date:"Y-m-d" }}
-                        </small>
-                    </div>
-                </div>
-            </div>
-        {% endfor %}
+    <div class="row" id="spots-container">
+        {# initial 20 spots #}
+        {% include "spots/_spot_cards.html" with spots=spots %}
     </div>
+
+    <!-- VIEW MORE BUTTON -->
+    {% if has_next_page %}
+        <div class="text-center mt-4">
+            <button
+                id="load-more-btn"
+                class="btn btn-outline-primary"
+                data-next-page="2"
+                data-country="{{ current_country }}"
+                data-difficulty="{{ current_difficulty }}"
+                data-query="{{ current_query|default_if_none:'' }}"
+            >
+                View more
+            </button>
+        </div>
+    {% endif %}
 {% else %}
     <p>No spots found for selected filters.</p>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const loadMoreBtn = document.getElementById("load-more-btn");
+    if (!loadMoreBtn) {
+        return;
+    }
+
+    const spotsContainer = document.getElementById("spots-container");
+
+    loadMoreBtn.addEventListener("click", function () {
+        const nextPage = this.dataset.nextPage;
+        const country = this.dataset.country;
+        const difficulty = this.dataset.difficulty;
+        const query = this.dataset.query;
+
+        const params = new URLSearchParams({
+            page: nextPage,
+        });
+
+        if (country) params.append("country", country);
+        if (difficulty) params.append("difficulty", difficulty);
+        if (query) params.append("q", query);
+
+        fetch("{% url 'spots:spot_list_load_more' %}?" + params.toString(), {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Append new cards
+            spotsContainer.insertAdjacentHTML("beforeend", data.html);
+
+            if (data.has_next) {
+                loadMoreBtn.dataset.nextPage = data.next_page;
+            } else {
+                loadMoreBtn.remove();
+            }
+        })
+        .catch(err => {
+            console.error("Error loading more spots:", err);
+        });
+    });
+});
+</script>
 {% endblock %}
