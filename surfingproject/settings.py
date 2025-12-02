@@ -42,13 +42,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Custom apps
-    'accounts.apps.AccountsConfig',
-    'core.apps.CoreConfig',
-
     # Third-party apps
     'django_countries',
 
+    # Custom apps
+    'accounts.apps.AccountsConfig',
+    'core.apps.CoreConfig',
+    'spots.apps.SpotsConfig',
 ]
 
 AUTH_USER_MODEL = "accounts.CustomUser"
