@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'core.apps.CoreConfig',
     'spots.apps.SpotsConfig',
+    'sessions.apps.SessionsConfig'
 ]
 
 AUTH_USER_MODEL = "accounts.CustomUser"
