@@ -16,9 +16,7 @@
         margin-bottom: 1.5rem;
     }
 </style>
-
 {% endblock %}
-
 
 {% block content %}
 
@@ -62,14 +60,26 @@
 
 <hr>
 
-<a href="{% url 'spots:spot_list' %}" class="btn btn-secondary">Back to list</a>
+<div class="mb-3">
+    {% if user.is_authenticated %}
+        {% if user.is_staff or user == spot.author %}
+            <a href="{% url 'spots:spot_update' spot.slug %}" class="btn btn-outline-primary me-2">
+                Edit spot
+            </a>
+            <a href="{% url 'spots:spot_delete' spot.slug %}" class="btn btn-outline-danger me-2">
+                Delete spot
+            </a>
+        {% endif %}
+    {% endif %}
+
+    <a href="{% url 'spots:spot_list' %}" class="btn btn-secondary">
+        Back to list
+    </a>
+</div>
 
 {% endblock %}
 
-
-
 {% block extra_js %}
-
 <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -92,8 +102,6 @@
         .addTo(map)
         .bindPopup("{{ spot.name|escapejs }}")
         .openPopup();
-
 </script>
 {% endif %}
-
 {% endblock %}

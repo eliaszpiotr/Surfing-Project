@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django_countries.fields import CountryField
+
 from .managers import CustomUserManager
 from django.conf import settings
 
@@ -27,7 +29,7 @@ class UserProfile(models.Model):
         related_name="profile",
     )
     bio = models.TextField(blank=True)
-    country = models.CharField(max_length=100, blank=True)
+    country = CountryField(blank_label='(select country)', blank=True, null=True)
     profile_picture = models.ImageField(
         upload_to="profile_pictures/",
         default="profile_pictures/default_profile.jpg",
