@@ -1,6 +1,5 @@
 from django.db import models
 from django.conf import settings
-
 from spots.models import Spot
 
 
@@ -26,40 +25,25 @@ class Session(models.Model):
         help_text="Users who joined this session.",
     )
 
-    date = models.DateField(
-        help_text="Date of the session.",
-    )
-
-    start_time = models.TimeField(
-        help_text="Start time of the session.",
-    )
-
+    date = models.DateField(help_text="Date of the session.")
+    start_time = models.TimeField(help_text="Start time of the session.")
     end_time = models.TimeField(
         null=True,
         blank=True,
         help_text="Optional end time of the session.",
     )
-
     max_participants = models.PositiveIntegerField(
         null=True,
         blank=True,
         help_text="Maximum number of participants (optional).",
     )
-
     note = models.TextField(
         blank=True,
         help_text="Additional information (meeting point, required level, etc.).",
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="When this session was created.",
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        help_text="When this session was last updated.",
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["date", "start_time"]
@@ -71,7 +55,7 @@ class Session(models.Model):
 
     @property
     def participants_count(self) -> int:
-
+        """Return how many users are in the participants list."""
         return self.participants.count()
 
     @property
@@ -81,12 +65,13 @@ class Session(models.Model):
         return self.participants_count >= self.max_participants
 
     def can_join(self, user) -> bool:
+        """Return True if given user can join this session."""
         if not user.is_authenticated:
             return False
 
-        # Organizer is always allowed (and usually treated as participant)
+        # Organizer is already "in" this session; we do not let them join/leave
         if user == self.organizer:
-            return True
+            return False
 
         # Already joined
         if self.participants.filter(pk=user.pk).exists():

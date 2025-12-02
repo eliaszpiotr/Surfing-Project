@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>Session at {{ session.spot.name }}</h2>
+
+        <p class="text-muted mb-1">
+            {{ session.date }} · {{ session.start_time|time:"H:i" }}
+            {% if session.end_time %}
+                – {{ session.end_time|time:"H:i" }}
+            {% endif %}
+        </p>
+
+        <p class="mb-1">
+            Organizer:
+            <strong>{{ session.organizer.username }}</strong>
+        </p>
+
+        <p class="mb-1">
+            Participants:
+            <strong>{{ session.participants_count }}</strong>
+            {% if session.max_participants %}
+                / {{ session.max_participants }}
+            {% endif %}
+        </p>
+
+        {% if session.note %}
+            <p class="mt-3">
+                <strong>Note:</strong><br>
+                {{ session.note|linebreaksbr }}
+            </p>
+        {% endif %}
+
+        <hr>
+
+        {# ACTIONS DEPENDING ON USER #}
+        {% if user.is_authenticated %}
+
+            {% if user == session.organizer %}
+                {# Organizer view #}
+                <p class="text-muted">
+                    You are the organizer of this session.
+                </p>
+
+                <a href="{% url 'surf_sessions:session_update' session.pk %}"
+                   class="btn btn-outline-primary btn-sm me-2">
+                    Edit session
+                </a>
+
+                <a href="{% url 'surf_sessions:session_delete' session.pk %}"
+                   class="btn btn-outline-danger btn-sm">
+                    Delete session
+                </a>
+
+            {% else %}
+                {# Regular user (including staff who is not organizer) #}
+                {% if user in session.participants.all %}
+                    <form method="post"
+                          action="{% url 'surf_sessions:session_leave' session.pk %}"
+                          class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger">
+                            Leave session
+                        </button>
+                    </form>
+                {% else %}
+                    {% if session.is_full %}
+                        <p class="text-danger mt-2">
+                            This session is full.
+                        </p>
+                    {% else %}
+                        <form method="post"
+                              action="{% url 'surf_sessions:session_join' session.pk %}"
+                              class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success">
+                                Join session
+                            </button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+
+        {% else %}
+            <p class="mt-2">
+                <a href="{% url 'login' %}?next={{ request.path }}">Log in</a>
+                to join this session.
+            </p>
+        {% endif %}
+
+        <hr>
+
+        <a href="{% url 'spots:spot_detail' session.spot.slug %}"
+           class="btn btn-secondary btn-sm">
+            Back to spot
+        </a>
+    </div>
+</div>
+{% endblock %}

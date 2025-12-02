@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('accounts/', include('accounts.urls')),
     path('spots/', include('spots.urls')),
+    path('surf_sessions/', include('surf_sessions.urls')),
 ]
 
 if settings.DEBUG:

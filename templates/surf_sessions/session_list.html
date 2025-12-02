@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Upcoming sessions</h2>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="mb-0">
+        Here you can see all upcoming surf sessions created by users.
+    </p>
+
+    {% if user.is_authenticated %}
+        <a href="{% url 'surf_sessions:session_create' %}" class="btn btn-primary btn-sm">
+            Create new session
+        </a>
+    {% else %}
+        <a href="{% url 'login' %}?next={% url 'surf_sessions:session_list' %}"
+           class="btn btn-outline-primary btn-sm">
+            Log in to create a session
+        </a>
+    {% endif %}
+</div>
+
+{% if sessions %}
+    <div class="list-group">
+        {% for s in sessions %}
+            <a href="{% url 'surf_sessions:session_detail' s.pk %}"
+               class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">
+                        {{ s.spot.name }} ({{ s.spot.country }})
+                    </h5>
+                    <small>
+                        {{ s.date }} {{ s.start_time|time:"H:i" }}
+                    </small>
+                </div>
+                <p class="mb-1">
+                    Organizer: {{ s.organizer.username }}<br>
+                    Participants: {{ s.participants_count }}
+                    {% if s.max_participants %}/ {{ s.max_participants }}{% endif %}
+                    {% if s.is_full %}
+                        <span class="badge bg-danger ms-2">Full</span>
+                    {% endif %}
+                </p>
+                {% if s.note %}
+                    <small class="text-muted">
+                        {{ s.note|truncatechars:80 }}
+                    </small>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>No upcoming sessions yet.</p>
+{% endif %}
+{% endblock %}

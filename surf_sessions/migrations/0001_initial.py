@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True, help_text='When this session was last updated.')),
                 ('organizer', models.ForeignKey(help_text='User who created this session.', on_delete=django.db.models.deletion.CASCADE, related_name='organized_sessions', to=settings.AUTH_USER_MODEL)),
                 ('participants', models.ManyToManyField(blank=True, help_text='Users who joined this session.', related_name='joined_sessions', to=settings.AUTH_USER_MODEL)),
-                ('spot', models.ForeignKey(help_text='Surf spot where this session will take place.', on_delete=django.db.models.deletion.CASCADE, related_name='sessions', to='spots.spot')),
+                ('spot', models.ForeignKey(help_text='Surf spot where this session will take place.', on_delete=django.db.models.deletion.CASCADE, related_name='surf_sessions', to='spots.spot')),
             ],
             options={
                 'verbose_name': 'Session',
