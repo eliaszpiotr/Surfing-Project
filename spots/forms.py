@@ -5,6 +5,7 @@ from .models import Spot
 class SpotForm(forms.ModelForm):
     class Meta:
         model = Spot
+        exclude = ("author", "slug")
         fields = [
             "name",
             "country",

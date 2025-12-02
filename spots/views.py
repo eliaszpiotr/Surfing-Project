@@ -1,10 +1,4 @@
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-)
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -15,6 +9,20 @@ from django.http import JsonResponse
 
 from .models import Spot
 from .forms import SpotForm
+
+
+class SpotAuthorOrStaffRequiredMixin(UserPassesTestMixin):
+
+    def test_func(self):
+        spot = self.get_object()
+        user = self.request.user
+        return user.is_staff or user == spot.author
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("You are not allowed to modify this spot.")
 
 
 class SpotListView(ListView):
@@ -58,44 +66,43 @@ class SpotCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy("spots:spot_detail", kwargs={"slug": self.object.slug})
 
 
-class AuthorOrStaffMixin(UserPassesTestMixin):
-
-    def test_func(self):
-        spot = self.get_object()
-        user = self.request.user
-        return user.is_authenticated and (user.is_staff or spot.author == user)
-
-
-class SpotUpdateView(LoginRequiredMixin, AuthorOrStaffMixin, UpdateView):
+class SpotUpdateView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, UpdateView):
     model = Spot
     form_class = SpotForm
     template_name = "spots/spot_form.html"
+    context_object_name = "spot"
     slug_field = "slug"
     slug_url_kwarg = "slug"
     login_url = "login"
+    redirect_field_name = "next"
 
     def form_valid(self, form):
-        messages.success(self.request, f"Spot '{self.object.name}' has been updated.")
+        spot = form.save(commit=False)
+        spot.author = self.get_object().author  # ensure author stays the same
+        spot.save()
+        messages.success(self.request, f"Surf spot '{spot.name}' has been updated successfully!")
+        self.object = spot
         return super().form_valid(form)
 
     def get_success_url(self):
+        # Better UX: go back to detail page, not list
         return reverse_lazy("spots:spot_detail", kwargs={"slug": self.object.slug})
 
 
-class SpotDeleteView(LoginRequiredMixin, AuthorOrStaffMixin, DeleteView):
+class SpotDeleteView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, DeleteView):
     model = Spot
     template_name = "spots/spot_confirm_delete.html"
+    context_object_name = "spot"
     slug_field = "slug"
     slug_url_kwarg = "slug"
+    success_url = reverse_lazy("spots:spot_list")
     login_url = "login"
+    redirect_field_name = "next"
 
     def delete(self, request, *args, **kwargs):
         spot = self.get_object()
-        messages.success(request, f"Spot '{spot.name}' has been deleted.")
+        messages.success(request, f"Surf spot '{spot.name}' has been deleted.")
         return super().delete(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse_lazy("spots:spot_list")
 
 
 class SpotMapDataView(View):
