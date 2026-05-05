@@ -1,5 +1,5 @@
 import json
-import uuid
+import os
 
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.text import slugify
@@ -21,8 +21,15 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Read the JSON file and import or update surf spots in the database."""
         json_path = options["json_path"]
         author_email = options["author_email"]
+
+        # Resolve the path to an absolute, canonical form to prevent path traversal.
+        json_path = os.path.realpath(os.path.abspath(json_path))
+
+        if not json_path.lower().endswith(".json"):
+            raise CommandError("File must have a .json extension.")
 
         User = get_user_model()
 

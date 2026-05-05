@@ -1,11 +1,39 @@
+import io
+
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import UploadedFile
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django_countries.fields import CountryField
+from PIL import Image
 
 from .managers import CustomUserManager
 from django.conf import settings
 
-# Create your models here.
+
+def validate_image_content(file):
+    """
+    Verify that a freshly uploaded file is a genuine image by decoding it with Pillow.
+
+    Only runs on new uploads (UploadedFile instances). Existing FieldFile references
+    are skipped so editing a profile without changing the picture never fails here.
+    """
+    if not isinstance(file, UploadedFile):
+        return
+    try:
+        data = file.read()
+        img = Image.open(io.BytesIO(data))
+        img.verify()
+    except Exception:
+        raise ValidationError(
+            "Uploaded file is not a valid image. "
+            "Please upload a JPG, PNG or WebP file."
+        )
+    finally:
+        if hasattr(file, "seek"):
+            file.seek(0)
+
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
@@ -19,6 +47,7 @@ class CustomUser(AbstractUser):
         return self.email
 
     def get_full_name(self):
+        """Return the user's full name as a single string."""
         return f"{self.first_name} {self.last_name}"
 
 
@@ -34,8 +63,20 @@ class UserProfile(models.Model):
         upload_to="profile_pictures/",
         default="profile_pictures/default_profile.jpg",
         blank=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"]),
+            validate_image_content,
+        ],
     )
 
+    def clean(self):
+        """Enforce a 5 MB size limit on profile pictures."""
+        super().clean()
+        if self.profile_picture and hasattr(self.profile_picture, "size"):
+            if self.profile_picture.size > 5 * 1024 * 1024:
+                raise ValidationError({"profile_picture": "Image must be under 5MB."})
+
     def __str__(self):
+        """Return the linked user's username, falling back to email."""
         username = getattr(self.user, "username", None)
         return username or getattr(self.user, "email", "Profile")
