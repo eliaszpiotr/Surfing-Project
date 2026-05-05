@@ -10,8 +10,9 @@ class SessionForm(forms.ModelForm):
 
     class Meta:
         model = Session
-        fields = ["name", "date", "start_time", "end_time", "max_participants", "note"]
+        fields = ["spot", "name", "date", "start_time", "end_time", "max_participants", "note"]
         widgets = {
+            "spot": forms.Select(attrs={"class": "form-select"}),
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Session name (e.g. Sunrise surf)", "required": True}),
             "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "start_time": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
@@ -20,12 +21,14 @@ class SessionForm(forms.ModelForm):
             "note": forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
         }
 
-    def __init__(self, *args, **kwargs):
-        """Apply Bootstrap styling to the spot select widget if present."""
+    def __init__(self, *args, fixed_spot=None, **kwargs):
+        """Optionally lock the form to a single spot chosen upstream in the UI."""
         super().__init__(*args, **kwargs)
 
-        if "spot" in self.fields:
-            self.fields["spot"].widget.attrs.update({"class": "form-select"})
+        if fixed_spot is not None:
+            self.fields["spot"].queryset = self.fields["spot"].queryset.filter(pk=fixed_spot.pk)
+            self.fields["spot"].initial = fixed_spot.pk
+            self.fields["spot"].widget = forms.HiddenInput()
 
     def clean_date(self):
         """Reject past dates for new sessions; allow editing sessions that already have one."""

@@ -129,47 +129,5 @@
 
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const latInput = document.getElementById("id_latitude");
-        const lngInput = document.getElementById("id_longitude");
-        const latDisplay = document.getElementById("lat-display");
-        const lngDisplay = document.getElementById("lng-display");
-        const coordsDisplay = document.getElementById("coords-display");
-
-        const defaultLat = parseFloat(latInput.value) || 20;
-        const defaultLng = parseFloat(lngInput.value) || 0;
-
-        const map = L.map("spot-map", {
-            center: [defaultLat, defaultLng],
-            zoom: latInput.value ? 10 : 2,
-            worldCopyJump: true
-        });
-        map.attributionControl.setPrefix(false);
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-        let marker = null;
-
-        function setMarker(lat, lng) {
-            const wrapped = L.latLng(lat, lng).wrap();
-            if (marker) marker.setLatLng([wrapped.lat, wrapped.lng]);
-            else marker = L.marker([wrapped.lat, wrapped.lng]).addTo(map);
-            latInput.value = wrapped.lat.toFixed(6);
-            lngInput.value = wrapped.lng.toFixed(6);
-            latDisplay.textContent = wrapped.lat.toFixed(4);
-            lngDisplay.textContent = wrapped.lng.toFixed(4);
-            coordsDisplay.style.display = 'block';
-        }
-
-        if (latInput.value && lngInput.value) {
-            setMarker(parseFloat(latInput.value), parseFloat(lngInput.value));
-            map.setView([parseFloat(latInput.value), parseFloat(lngInput.value)], 10);
-        }
-
-        map.on("click", e => setMarker(e.latlng.lat, e.latlng.lng));
-    });
-</script>
+<script src="{% static 'js/spot-form-map.js' %}"></script>
 {% endblock %}

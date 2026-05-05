@@ -45,6 +45,7 @@ def spot(user1):
     return Spot.objects.create(
         name="Rincon",
         author=user1,
+        country="US",
         latitude=35.0,
         longitude=-120.0,
     )
@@ -64,6 +65,7 @@ def past_date():
 def session(spot, user1, future_date):
     """Default future session with user1 as the organizer and a cap of 5 participants."""
     return Session.objects.create(
+        name="Morning session",
         spot=spot,
         organizer=user1,
         date=future_date,
@@ -78,6 +80,7 @@ def session(spot, user1, future_date):
 @pytest.mark.django_db
 def test_session_creation_basic(spot, user1, future_date):
     sess = Session.objects.create(
+        name="Sunrise session",
         spot=spot,
         organizer=user1,
         date=future_date,
@@ -92,6 +95,7 @@ def test_session_creation_basic(spot, user1, future_date):
 @pytest.mark.django_db
 def test_organizer_is_automatically_participant(spot, user1, future_date):
     sess = Session.objects.create(
+        name="Dawn patrol",
         spot=spot,
         organizer=user1,
         date=future_date,
@@ -105,6 +109,7 @@ def test_organizer_is_automatically_participant(spot, user1, future_date):
 def test_participants_count_and_is_full(spot, user1, future_date):
     # max_participants = 2 -> organizer + one more slot
     sess = Session.objects.create(
+        name="Afternoon surf",
         spot=spot,
         organizer=user1,
         date=future_date,
@@ -151,6 +156,7 @@ def test_can_join_normal_user_when_not_full(session, user2):
 def test_cannot_join_when_full_for_normal_user(spot, user1, user2, future_date):
     # max_participants = 1 -> organizer occupies the only slot
     sess = Session.objects.create(
+        name="Small group",
         spot=spot,
         organizer=user1,
         date=future_date,
@@ -169,11 +175,12 @@ def test_organizer_can_join_even_if_full(spot, user1, future_date):
     so that UI buttons remain consistent for the session creator.
     """
     sess = Session.objects.create(
+        name="Organizer slot",
         spot=spot,
         organizer=user1,
         date=future_date,
         start_time="12:00",
-        max_participants=0,
+        max_participants=1,
     )
     assert sess.is_full is True
     assert sess.can_join(user1) is True
@@ -194,6 +201,7 @@ def test_remove_normal_participant(session, user2):
 @pytest.mark.django_db
 def test_remove_organizer_raises_exception(spot, user1, future_date):
     sess = Session.objects.create(
+        name="Protected organizer",
         spot=spot,
         organizer=user1,
         date=future_date,
@@ -214,12 +222,14 @@ def test_remove_organizer_raises_exception(spot, user1, future_date):
 @pytest.mark.django_db
 def test_session_list_shows_only_future_sessions(client, spot, user1, future_date, past_date):
     future_sess = Session.objects.create(
+        name="Future session",
         spot=spot,
         organizer=user1,
         date=future_date,
         start_time="10:00",
     )
     past_sess = Session.objects.create(
+        name="Past session",
         spot=spot,
         organizer=user1,
         date=past_date,
@@ -277,6 +287,7 @@ def test_session_create_sets_organizer_and_spot(client, user1, spot, future_date
         url,
         {
             "spot": spot.pk,  # ważne: żeby form był poprawny
+            "name": "Afternoon session",
             "date": future_date.isoformat(),
             "start_time": "15:00",
             "end_time": "",
@@ -363,6 +374,7 @@ def test_organizer_cannot_leave_via_view(client, session, user1):
 def test_join_fails_when_full_via_view(client, spot, user1, user2, future_date):
     # max_participants = 1 -> organizer occupies the only slot
     sess = Session.objects.create(
+        name="Packed session",
         spot=spot,
         organizer=user1,
         date=future_date,
@@ -416,6 +428,7 @@ def test_organizer_can_update_session_data(client, session, user1, spot):
         url,
         {
             "spot": spot.pk,  # included in case the form exposes the spot field
+            "name": session.name,
             "date": session.date.isoformat(),
             "start_time": start_value,
             "end_time": "",
@@ -428,6 +441,33 @@ def test_organizer_can_update_session_data(client, session, user1, spot):
     assert response.status_code == 302
     session.refresh_from_db()
     assert session.note == new_note
+
+
+@pytest.mark.django_db
+def test_session_create_without_query_param_uses_selected_spot(client, user1, spot, future_date):
+    client.force_login(user1)
+
+    url = reverse("surf_sessions:session_create")
+    response = client.post(
+        url,
+        {
+            "spot": spot.pk,
+            "name": "Open create flow",
+            "date": future_date.isoformat(),
+            "start_time": "16:00",
+            "end_time": "",
+            "max_participants": "",
+            "note": "",
+        },
+        follow=False,
+    )
+
+    assert response.status_code == 302
+    assert Session.objects.filter(
+        spot=spot,
+        organizer=user1,
+        name="Open create flow",
+    ).exists()
 
 
 @pytest.mark.django_db

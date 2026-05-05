@@ -15,13 +15,21 @@
 
         <form method="post" novalidate>
             {% csrf_token %}
-            {{ form.spot }}
             {{ form.non_field_errors }}
 
             {% if spot %}
+            {{ form.spot }}
             <div class="mb-3">
                 <label class="form-label">Spot</label>
                 <div class="form-control bg-light">{{ spot.name }}, {{ spot.country }}</div>
+            </div>
+            {% else %}
+            <div class="mb-3">
+                {{ form.spot.label_tag }}
+                {{ form.spot }}
+                {% for error in form.spot.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
             </div>
             {% endif %}
 

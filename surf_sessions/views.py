@@ -60,21 +60,23 @@ class SessionDetailView(DetailView):
 
 
 class SessionCreateView(LoginRequiredMixin, CreateView):
-    """Create a new surf session linked to a spot passed as a query parameter."""
+    """Create a new surf session, optionally preselecting a spot from the query string."""
 
     model = Session
     form_class = SessionForm
     template_name = "surf_sessions/session_form.html"
 
     def dispatch(self, request, *args, **kwargs):
-        """Require a valid ?spot= query parameter before rendering the form."""
+        """Optionally bind the form to a specific spot from ?spot=<id>."""
         spot_id = request.GET.get("spot")
-        if not spot_id:
-            messages.error(request, "Choose a surf spot first.")
-            return redirect("spots:spot_list")
-
-        self.spot = get_object_or_404(Spot, pk=spot_id)
+        self.spot = get_object_or_404(Spot, pk=spot_id) if spot_id else None
         return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        """Pass the fixed spot to the form so it can be rendered as a hidden field."""
+        kwargs = super().get_form_kwargs()
+        kwargs["fixed_spot"] = self.spot
+        return kwargs
 
     def get_context_data(self, **kwargs):
         """Add the target spot to the template context."""
@@ -86,7 +88,7 @@ class SessionCreateView(LoginRequiredMixin, CreateView):
         """Assign the current user as organizer and the chosen spot before saving."""
         session = form.save(commit=False)
         session.organizer = self.request.user
-        session.spot = self.spot
+        session.spot = self.spot or form.cleaned_data["spot"]
         session.save()
         messages.success(self.request, "Session created successfully!")
         return redirect("spots:spot_detail", slug=session.spot.slug)
