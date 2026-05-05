@@ -1,63 +1,70 @@
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.urls import reverse_lazy
-from django.utils.text import slugify
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-import uuid
 from django.core.paginator import Paginator
 from django.template.loader import render_to_string
-from django.views import View
 
 from .forms import SpotForm
 from .models import Spot
 from surf_sessions.models import Session
 
+SPOTS_PER_PAGE = 21
+
+
+def get_filtered_spots(request):
+    """Return a filtered Spot queryset based on GET params (country, difficulty, q)."""
+    qs = Spot.objects.all()
+
+    country = request.GET.get("country") or ""
+    difficulty = request.GET.get("difficulty") or ""
+    query = request.GET.get("q") or ""
+
+    if country:
+        qs = qs.filter(country=country)
+
+    if difficulty:
+        qs = qs.filter(difficulty=difficulty)
+
+    if query:
+        qs = qs.filter(name__icontains=query.strip())
+
+    return qs
+
 
 class SpotAuthorOrStaffRequiredMixin(UserPassesTestMixin):
+    """Restrict access to the spot's author or staff members."""
 
     def test_func(self):
+        """Return True if the current user is the spot's author or a staff member."""
         spot = self.get_object()
         user = self.request.user
         return user.is_staff or user == spot.author
 
     def handle_no_permission(self):
+        """Raise 403 for authenticated users; redirect to login for anonymous ones."""
         if not self.request.user.is_authenticated:
             return super().handle_no_permission()
-        from django.core.exceptions import PermissionDenied
         raise PermissionDenied("You are not allowed to modify this spot.")
 
 
 class SpotListView(ListView):
+    """Paginated, filterable list of all surf spots."""
+
     model = Spot
     template_name = "spots/spot_list.html"
     context_object_name = "spots"
-    paginate_by = 21
-
-    def get_filtered_queryset(self):
-        qs = Spot.objects.all()
-
-        country = self.request.GET.get("country") or ""
-        difficulty = self.request.GET.get("difficulty") or ""
-        query = self.request.GET.get("q") or ""
-
-        if country:
-            qs = qs.filter(country=country)
-
-        if difficulty:
-            qs = qs.filter(difficulty=difficulty)
-
-        if query:
-            qs = qs.filter(name__icontains=query.strip())
-
-        return qs
+    paginate_by = SPOTS_PER_PAGE
 
     def get_queryset(self):
-        return self.get_filtered_queryset()
+        return get_filtered_spots(self.request)
 
     def get_context_data(self, **kwargs):
+        """Add filter options and active filter values to the template context."""
         context = super().get_context_data(**kwargs)
 
         context["countries"] = (
@@ -73,23 +80,26 @@ class SpotListView(ListView):
         context["current_difficulty"] = self.request.GET.get("difficulty", "")
         context["current_query"] = self.request.GET.get("q", "")
 
-        # Needed for load-more initial state
         context["has_next_page"] = context["page_obj"].has_next()
 
         return context
 
 
 class SpotListLoadMoreView(View):
+    """AJAX endpoint that returns the next page of spot cards as rendered HTML."""
 
     def get(self, request):
-        page = int(request.GET.get("page", 1))
+        """Return JSON with rendered HTML fragment and pagination metadata."""
+        try:
+            page = int(request.GET.get("page", 1))
+            if page < 1:
+                raise ValueError
+        except (ValueError, TypeError):
+            return HttpResponseBadRequest("Invalid page number.")
 
-        # Reuse the filtering logic from SpotListView
-        list_view = SpotListView()
-        list_view.request = request
-        queryset = list_view.get_filtered_queryset()
+        queryset = get_filtered_spots(request)
 
-        paginator = Paginator(queryset, 21)
+        paginator = Paginator(queryset, SPOTS_PER_PAGE)
         page_obj = paginator.get_page(page)
 
         html = render_to_string(
@@ -108,6 +118,8 @@ class SpotListLoadMoreView(View):
 
 
 class SpotDetailView(DetailView):
+    """Detail page for a single surf spot, including upcoming sessions."""
+
     model = Spot
     template_name = "spots/spot_detail.html"
     context_object_name = "spot"
@@ -115,18 +127,23 @@ class SpotDetailView(DetailView):
     slug_url_kwarg = "slug"
 
     def get_context_data(self, **kwargs):
+        """Add upcoming sessions for this spot to the template context."""
         context = super().get_context_data(**kwargs)
         today = timezone.localdate()
 
         context["upcoming_sessions"] = (
             Session.objects
             .filter(spot=self.object, date__gte=today)
+            .select_related("organizer")
+            .prefetch_related("participants")
             .order_by("date", "start_time")
         )
         return context
 
 
 class SpotCreateView(LoginRequiredMixin, CreateView):
+    """Create a new surf spot; the current user becomes the author."""
+
     model = Spot
     form_class = SpotForm
     template_name = "spots/spot_form.html"
@@ -135,12 +152,9 @@ class SpotCreateView(LoginRequiredMixin, CreateView):
     redirect_field_name = "next"
 
     def form_valid(self, form):
+        """Assign the current user as author; slug is generated in model.save()."""
         spot = form.save(commit=False)
         spot.author = self.request.user
-
-        if not spot.slug:
-            spot.slug = slugify(spot.name) + "-" + str(uuid.uuid4())[:8]
-
         spot.save()
         messages.success(
             self.request,
@@ -154,6 +168,8 @@ class SpotCreateView(LoginRequiredMixin, CreateView):
 
 
 class SpotUpdateView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, UpdateView):
+    """Edit an existing surf spot; only the author or staff can access this view."""
+
     model = Spot
     form_class = SpotForm
     template_name = "spots/spot_form.html"
@@ -165,11 +181,9 @@ class SpotUpdateView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, UpdateV
     redirect_field_name = "next"
 
     def form_valid(self, form):
+        """Preserve the original author; slug is regenerated in model.save() if empty."""
         spot = form.save(commit=False)
         spot.author = self.get_object().author
-        if not spot.slug:
-            spot.slug = slugify(spot.name) + "-" + str(uuid.uuid4())[:8]
-
         spot.save()
         messages.success(self.request, f"Surf spot '{spot.name}' has been updated successfully!")
         self.object = spot
@@ -180,6 +194,8 @@ class SpotUpdateView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, UpdateV
 
 
 class SpotDeleteView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, DeleteView):
+    """Delete a surf spot; only the author or staff can perform this action."""
+
     model = Spot
     template_name = "spots/spot_confirm_delete.html"
     context_object_name = "spot"
@@ -191,13 +207,17 @@ class SpotDeleteView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, DeleteV
     redirect_field_name = "next"
 
     def delete(self, request, *args, **kwargs):
+        """Show a success message before delegating deletion to the parent class."""
         spot = self.get_object()
         messages.success(request, f"Surf spot '{spot.name}' has been deleted.")
         return super().delete(request, *args, **kwargs)
 
 
 class SpotMapDataView(View):
+    """Return a JSON array of spots with coordinates for the front-end map."""
+
     def get(self, request):
+        """Serialize spots that have latitude and longitude set."""
         spots = (
             Spot.objects
             .exclude(latitude__isnull=True)
