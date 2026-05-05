@@ -3,6 +3,7 @@ from django.utils.timezone import localdate
 from surf_sessions.models import Session
 
 def home(request):
+    """Render the home page with a list of the ten nearest upcoming sessions."""
     today = localdate()
     upcoming_sessions = (
         Session.objects.filter(date__gte=today)

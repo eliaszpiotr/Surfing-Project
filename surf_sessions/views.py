@@ -1,10 +1,15 @@
-from django.shortcuts import get_object_or_404, redirect, render
+import logging
+
+from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 from .models import Session
 from .forms import SessionForm
@@ -12,21 +17,37 @@ from spots.models import Spot
 
 
 class SessionListView(LoginRequiredMixin, ListView):
+    """Paginated list of upcoming surf sessions, visible to authenticated users only."""
+
     model = Session
     template_name = "surf_sessions/session_list.html"
     context_object_name = "sessions"
 
     def get_queryset(self):
+        """Return only future sessions, optimised with select/prefetch."""
         today = timezone.localdate()
-        return Session.objects.filter(date__gte=today).order_by("date", "start_time")
+        return (
+            Session.objects
+            .filter(date__gte=today)
+            .select_related("spot", "organizer")
+            .prefetch_related("participants")
+            .order_by("date", "start_time")
+        )
 
 
 class SessionDetailView(DetailView):
+    """Detail page for a single surf session, including join/leave context flags."""
+
     model = Session
     template_name = "surf_sessions/session_detail.html"
     context_object_name = "session"
 
+    def get_queryset(self):
+        """Return sessions with related spot and participants pre-fetched."""
+        return Session.objects.select_related("spot", "organizer").prefetch_related("participants")
+
     def get_context_data(self, **kwargs):
+        """Add organizer, join eligibility, and participation flags to the context."""
         context = super().get_context_data(**kwargs)
         session = self.object
         user = self.request.user
@@ -39,11 +60,14 @@ class SessionDetailView(DetailView):
 
 
 class SessionCreateView(LoginRequiredMixin, CreateView):
+    """Create a new surf session linked to a spot passed as a query parameter."""
+
     model = Session
     form_class = SessionForm
     template_name = "surf_sessions/session_form.html"
 
     def dispatch(self, request, *args, **kwargs):
+        """Require a valid ?spot= query parameter before rendering the form."""
         spot_id = request.GET.get("spot")
         if not spot_id:
             messages.error(request, "Choose a surf spot first.")
@@ -53,11 +77,13 @@ class SessionCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        """Add the target spot to the template context."""
         context = super().get_context_data(**kwargs)
         context["spot"] = self.spot
         return context
 
     def form_valid(self, form):
+        """Assign the current user as organizer and the chosen spot before saving."""
         session = form.save(commit=False)
         session.organizer = self.request.user
         session.spot = self.spot
@@ -67,42 +93,55 @@ class SessionCreateView(LoginRequiredMixin, CreateView):
 
 
 class SessionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    """Edit an existing surf session; only the organizer may access this view."""
+
     model = Session
     form_class = SessionForm
     template_name = "surf_sessions/session_form.html"
     context_object_name = "session"
 
     def test_func(self):
+        """Return True only if the current user is the session organizer."""
         return self.request.user == self.get_object().organizer
 
     def handle_no_permission(self):
+        """Redirect non-organizers to the session detail page with an error message."""
         messages.error(self.request, "Only the organizer can edit this session.")
         return redirect("surf_sessions:session_detail", pk=self.get_object().pk)
 
     def form_valid(self, form):
+        """Save changes and redirect to the session detail page."""
         session = form.save()
         messages.success(self.request, "Session updated.")
         return redirect("surf_sessions:session_detail", pk=session.pk)
 
 
 class SessionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """Delete a surf session; only the organizer may perform this action."""
+
     model = Session
     template_name = "surf_sessions/session_confirm_delete.html"
     context_object_name = "session"
 
     def test_func(self):
+        """Return True only if the current user is the session organizer."""
         return self.request.user == self.get_object().organizer
 
     def handle_no_permission(self):
+        """Redirect non-organizers to the session detail page with an error message."""
         messages.error(self.request, "Only the organizer can delete this session.")
         return redirect("surf_sessions:session_detail", pk=self.get_object().pk)
 
     def get_success_url(self):
+        """Redirect to the parent spot's detail page after deletion."""
         return reverse_lazy("spots:spot_detail", kwargs={"slug": self.object.spot.slug})
 
 
 class SessionJoinView(LoginRequiredMixin, View):
+    """Handle POST requests to join a surf session."""
+
     def post(self, request, pk):
+        """Add the current user to the session's participants if eligible."""
         session = get_object_or_404(Session, pk=pk)
         if not session.can_join(request.user):
             messages.error(request, "You cannot join this session.")
@@ -114,12 +153,18 @@ class SessionJoinView(LoginRequiredMixin, View):
 
 
 class SessionLeaveView(LoginRequiredMixin, View):
+    """Handle POST requests to leave a surf session."""
+
     def post(self, request, pk):
+        """Remove the current user from the session's participants."""
         session = get_object_or_404(Session, pk=pk)
         try:
             session.remove_participant(request.user)
             messages.success(request, "You left the session.")
-        except Exception as e:
+        except PermissionDenied as e:
             messages.error(request, str(e))
+        except Exception:
+            logger.exception("Unexpected error while leaving session %s", pk)
+            messages.error(request, "Something went wrong. Please try again.")
 
         return redirect("surf_sessions:session_detail", pk=session.pk)

@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.conf import settings
 from django_countries.fields import CountryField
@@ -5,7 +6,9 @@ from django.utils.text import slugify
 
 
 class Spot(models.Model):
-    # --- ENUMS (Choices) ---
+    """A surf spot with location, surf characteristics, and optional media."""
+
+    # --- Choices ---
     class Difficulty(models.TextChoices):
         BEGINNER = 'beginner', 'Beginner'
         INTERMEDIATE = 'intermediate', 'Intermediate'
@@ -37,10 +40,12 @@ class Spot(models.Model):
     # --- LOCATION ---
     latitude = models.DecimalField(
         max_digits=9, decimal_places=6, null=True, blank=True,
+        validators=[MinValueValidator(-90), MaxValueValidator(90)],
         help_text="Latitude (e.g. 54.608)"
     )
     longitude = models.DecimalField(
         max_digits=9, decimal_places=6, null=True, blank=True,
+        validators=[MinValueValidator(-180), MaxValueValidator(180)],
         help_text="Longitude (e.g. 18.800)"
     )
     location_details = models.CharField(
@@ -87,11 +92,20 @@ class Spot(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        """Return the spot name together with its country code."""
         return f"{self.name} ({self.country})"
 
     def save(self, *args, **kwargs):
+        """Auto-generate a unique slug from the spot name before saving."""
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            # Ensure slug uniqueness without relying on views
+            while Spot.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
         super().save(*args, **kwargs)
 
     class Meta:

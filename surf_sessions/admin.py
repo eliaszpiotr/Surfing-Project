@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from .models import Session
 
@@ -11,7 +12,7 @@ class SessionAdmin(admin.ModelAdmin):
         "date",
         "start_time",
         "organizer",
-        "participants_count",
+        "participant_count",
         "max_participants",
         "created_at",
     )
@@ -25,3 +26,11 @@ class SessionAdmin(admin.ModelAdmin):
         "organizer__email",
     )
     ordering = ("date", "start_time")
+
+    def get_queryset(self, request):
+        # Annotate to avoid N+1 queries for participant count
+        return super().get_queryset(request).annotate(_participant_count=Count("participants"))
+
+    @admin.display(description="Participants", ordering="_participant_count")
+    def participant_count(self, obj):
+        return obj._participant_count
