@@ -1,159 +1,146 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_css %}
-    <!-- Leaflet CSS for spot map -->
-    <link
-            rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-            crossorigin=""
-    >
-    <style>
-        #spot-map {
-            width: 100%;
-            height: 320px;
-            border-radius: 4px;
-        }
-    </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+    #spot-map { height: 260px; border-radius: 0.375rem; }
+</style>
 {% endblock %}
 
 {% block content %}
-    <div class="row">
-        <!-- LEFT COLUMN – spot info -->
-        <div class="col-md-6">
-            <h2>{{ spot.name }}</h2>
-            <p class="text-muted mb-1">
-                Country: {{ spot.country.name }}
-            </p>
-            <p class="text-muted mb-3">
-                Added by {{ spot.author.username }} on {{ spot.created_at|date:"Y-m-d" }}
-            </p>
+<a href="{% url 'spots:spot_list' %}" class="text-muted small text-decoration-none d-inline-block mb-3">
+    &larr; All spots
+</a>
 
-            {% if spot.description %}
-                <h5>Description</h5>
-                <p>{{ spot.description }}</p>
-            {% endif %}
+{% if spot.image %}
+    <img src="{{ spot.image.url }}" alt="{{ spot.name }}"
+         class="img-fluid rounded mb-4" style="max-height:300px;width:100%;object-fit:cover;">
+{% endif %}
 
-            <h5>Surf details</h5>
-            <ul>
-                <li>Difficulty: {{ spot.get_difficulty_display }}</li>
-                <li>Break type: {{ spot.get_surf_break_type_display }}</li>
-                <li>Wave direction: {{ spot.get_wave_direction_display }}</li>
-            </ul>
+<div class="row">
+    <div class="col-md-8">
+        <h2 class="mb-1">{{ spot.name }}</h2>
+        <p class="text-muted mb-3">
+            {{ spot.country.name }}{% if spot.location_details %}, {{ spot.location_details }}{% endif %}
+        </p>
 
-            <h5>Best conditions</h5>
-            <ul>
-                <li>Swell direction: {{ spot.optimal_swell_direction|default:"No data" }}</li>
-                <li>Wind direction: {{ spot.optimal_wind_direction|default:"No data" }}</li>
-            </ul>
-
-            {% if spot.location_details %}
-                <h5>Location details</h5>
-                <p>{{ spot.location_details }}</p>
-            {% endif %}
-
-            {% if user.is_authenticated and user.is_staff %}
-                <hr>
-                <div class="mb-3">
-                    <a href="{% url 'spots:spot_update' spot.slug %}"
-                       class="btn btn-outline-primary btn-sm me-2">
-                        Edit spot
-                    </a>
-                    <a href="{% url 'spots:spot_delete' spot.slug %}"
-                       class="btn btn-outline-danger btn-sm">
-                        Delete spot
-                    </a>
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold mb-3">Surf details</h6>
+                <div class="row row-cols-2 g-3">
+                    <div>
+                        <div class="text-muted small">Difficulty</div>
+                        {% with d=spot.get_difficulty_display %}
+                        {% if spot.difficulty == 'beginner' %}<span class="badge bg-success">{{ d }}</span>
+                        {% elif spot.difficulty == 'intermediate' %}<span class="badge bg-primary">{{ d }}</span>
+                        {% elif spot.difficulty == 'advanced' %}<span class="badge bg-warning text-dark">{{ d }}</span>
+                        {% else %}<span class="badge bg-danger">{{ d }}</span>{% endif %}
+                        {% endwith %}
+                    </div>
+                    <div>
+                        <div class="text-muted small">Break type</div>
+                        <div>{{ spot.get_surf_break_type_display }}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Wave direction</div>
+                        <div>{{ spot.get_wave_direction_display }}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Added by</div>
+                        <div>@{{ spot.author.username }}</div>
+                    </div>
+                    {% if spot.optimal_swell_direction %}
+                    <div>
+                        <div class="text-muted small">Optimal swell</div>
+                        <div>{{ spot.optimal_swell_direction }}</div>
+                    </div>
+                    {% endif %}
+                    {% if spot.optimal_wind_direction %}
+                    <div>
+                        <div class="text-muted small">Optimal wind</div>
+                        <div>{{ spot.optimal_wind_direction }}</div>
+                    </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
+        </div>
 
-            <hr>
+        {% if spot.description %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold mb-2">About this spot</h6>
+                <p class="mb-0">{{ spot.description }}</p>
+            </div>
+        </div>
+        {% endif %}
 
-            <!-- UPCOMING SESSIONS -->
-            <h3>Upcoming sessions</h3>
+        {% if user.is_authenticated and user.is_staff or user == spot.author %}
+        <div class="mb-3">
+            <a href="{% url 'spots:spot_update' spot.slug %}" class="btn btn-outline-secondary btn-sm me-2">Edit spot</a>
+            <a href="{% url 'spots:spot_delete' spot.slug %}" class="btn btn-outline-danger btn-sm">Delete</a>
+        </div>
+        {% endif %}
 
-            {% if upcoming_sessions %}
-                <div class="list-group mb-3">
-                    {% for s in upcoming_sessions %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Upcoming sessions</h6>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'surf_sessions:session_create' %}?spot={{ spot.pk }}" class="btn btn-success btn-sm">+ Session</a>
+                    {% endif %}
+                </div>
+                {% if upcoming_sessions %}
+                    <div class="list-group list-group-flush">
+                        {% for s in upcoming_sessions %}
                         <a href="{% url 'surf_sessions:session_detail' s.pk %}"
-                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
                             <div>
-                                <strong>{{ s.name }}</strong>
+                                <strong class="small">{{ s.name }}</strong>
                                 <div class="text-muted small">
-                                    <strong>{{ s.date|date:"M j, Y" }}</strong> at {{ s.start_time|time:"H:i" }}
-                                    {% if s.end_time %} – {{ s.end_time|time:"H:i" }}{% endif %}
-                                    · organized by {{ s.organizer.username }}
-                                </div>
-
-                                <div class="text-muted small">
-                                    Participants: {{ s.participants_count }}
-                                    {% if s.max_participants %}
-                                        / {{ s.max_participants }}
-                                    {% endif %}
+                                    {{ s.date|date:"M j, Y" }} &middot; {{ s.start_time|time:"H:i" }}{% if s.end_time %}&ndash;{{ s.end_time|time:"H:i" }}{% endif %} &middot; @{{ s.organizer.username }}
                                 </div>
                             </div>
-
-                            {% if user.is_authenticated and  user in s.participants.all %}
-                                <span class="badge bg-success">Joined</span>
-                            {% endif %}
+                            <div class="text-end small">
+                                {{ s.participants_count }}{% if s.max_participants %}/{{ s.max_participants }}{% endif %}
+                                {% if user in s.participants.all %}<span class="badge bg-success ms-1">Joined</span>{% endif %}
+                                {% if s.is_full %}<span class="badge bg-danger ms-1">Full</span>{% endif %}
+                            </div>
                         </a>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="text-muted">No upcoming sessions for this spot yet.</p>
-            {% endif %}
-
-            {% if user.is_authenticated %}
-                <a href="{% url 'surf_sessions:session_create' %}?spot={{ spot.pk }}"
-                   class="btn btn-success btn-sm">
-                    Create session for this spot
-                </a>
-            {% else %}
-                <p class="mt-2">
-                    <a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a>
-                    to create a session for this spot.
-                </p>
-            {% endif %}
-        </div>
-
-        <!-- RIGHT COLUMN – map -->
-        <div class="col-md-6">
-            <h5>Spot location</h5>
-            {% if spot.latitude and spot.longitude %}
-                <div id="spot-map"></div>
-            {% else %}
-                <p class="text-muted">No coordinates for this spot yet.</p>
-            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-0">
+                        No upcoming sessions yet{% if not user.is_authenticated %} &middot; <a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a> to create one{% endif %}
+                    </p>
+                {% endif %}
+            </div>
         </div>
     </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold mb-3">Location</h6>
+                {% if spot.latitude and spot.longitude %}
+                    <!-- Dane mapy przekazywane przez data-* — bez inline JS -->
+                    <div id="spot-map"
+                         data-lat="{{ spot.latitude }}"
+                         data-lng="{{ spot.longitude }}"
+                         data-name="{{ spot.name|escapejs }}"></div>
+                {% else %}
+                    <p class="text-muted small mb-0">No coordinates set</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-    <!-- Leaflet JS -->
-    <script
-            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin="">
-    </script>
-
-    {% if spot.latitude and spot.longitude %}
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                const lat = {{ spot.latitude }};
-                const lng = {{ spot.longitude }};
-
-                const map = L.map('spot-map').setView([lat, lng], 11);
-                map.attributionControl.setPrefix(false);
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 18,
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
-
-                L.marker([lat, lng]).addTo(map)
-                    .bindPopup("{{ spot.name|escapejs }}")
-                    .openPopup();
-            });
-        </script>
-    {% endif %}
+{% if spot.latitude and spot.longitude %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Logika mapy w statycznym pliku JS — dane spotu w atrybutach data-* na #spot-map -->
+<script src="{% static 'js/spot-map.js' %}"></script>
+{% endif %}
 {% endblock %}

@@ -8,6 +8,8 @@
 
     <!-- Bootstrap CSS (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Black & white theme overrides -->
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -23,7 +25,7 @@
         <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse show" id="navbarNav">
+    <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
 
             {% if user.is_authenticated %}
@@ -49,7 +51,7 @@
                 <li class="nav-item">
                     <form action="{% url 'accounts:logout' %}" method="post" class="d-inline">
                         {% csrf_token %}
-                        <button type="submit" class="nav-link text-danger border-0 bg-transparent">
+                        <button type="submit" class="nav-link text-dark border-0 bg-transparent">
                             Logout
                         </button>
                     </form>
@@ -64,13 +66,13 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-primary" href="{% url 'accounts:login' %}">
+                    <a class="nav-link" href="{% url 'accounts:login' %}">
                         Login
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-success" href="{% url 'accounts:register' %}">
+                    <a class="nav-link" href="{% url 'accounts:register' %}">
                         Register
                     </a>
                 </li>
@@ -81,11 +83,21 @@
 </nav>
 
 <!-- MESSAGES -->
+<!-- Django używa tagów: success, error, warning, info.
+     Bootstrap wymaga: alert-success, alert-danger, alert-warning, alert-info.
+     Mapowanie: Django "error" → Bootstrap "danger". -->
 <div class="container mt-2">
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }}">
+            {% if message.tags == 'error' %}
+                <div class="alert alert-danger alert-dismissible" role="alert">
+            {% elif message.tags %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+            {% else %}
+                <div class="alert alert-info alert-dismissible" role="alert">
+            {% endif %}
                 {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         {% endfor %}
     {% endif %}
@@ -105,11 +117,8 @@
 <!-- Bootstrap JS (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script>
-    setTimeout(function () {
-        document.querySelectorAll('.alert').forEach(el => el.style.opacity = "0");
-    }, 2500);
-</script>
+<!-- Auto-ukrywanie alertów (zewnętrzny plik statyczny, bez inline JS) -->
+<script src="{% static 'js/alerts.js' %}"></script>
 
 {% block extra_js %}{% endblock %}
 

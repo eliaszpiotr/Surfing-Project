@@ -1,132 +1,73 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
-<h2>Surf spots</h2>
-
-<!-- FILTER FORM -->
-<form method="get" class="row g-2 mb-4 align-items-end">
-
-    <!-- Country filter -->
-    <div class="col-md-3">
-        <label for="id_country" class="form-label">Country</label>
-        <select name="country" id="id_country" class="form-select">
-            <option value="">All countries</option>
-            {% for c in countries %}
-                <option value="{{ c }}" {% if c == current_country %}selected{% endif %}>
-                    {{ c }}
-                </option>
-            {% endfor %}
-        </select>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Surf Spots</h2>
+        <p class="text-muted small mb-0">Discover the best waves around the world</p>
     </div>
+    {% if user.is_authenticated %}
+        <a href="{% url 'spots:spot_create' %}" class="btn btn-success">+ Add spot</a>
+    {% endif %}
+</div>
 
-    <!-- Difficulty filter -->
-    <div class="col-md-3">
-        <label for="id_difficulty" class="form-label">Difficulty</label>
-        <select name="difficulty" id="id_difficulty" class="form-select">
-            <option value="">All levels</option>
-            {% for value, label in difficulties %}
-                <option value="{{ value }}" {% if value == current_difficulty %}selected{% endif %}>
-                    {{ label }}
-                </option>
-            {% endfor %}
-        </select>
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-sm-4">
+                <label class="form-label small">Country</label>
+                <select name="country" class="form-select form-select-sm">
+                    <option value="">All countries</option>
+                    {% for c in countries %}
+                        <option value="{{ c }}" {% if c == current_country %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label small">Difficulty</label>
+                <select name="difficulty" class="form-select form-select-sm">
+                    <option value="">All levels</option>
+                    {% for value, label in difficulties %}
+                        <option value="{{ value }}" {% if value == current_difficulty %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label small">Search</label>
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Spot name..." value="{{ current_query }}">
+            </div>
+            <div class="col-sm-2 d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-sm">Filter</button>
+                <a href="{% url 'spots:spot_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
     </div>
+</div>
 
-    <!-- Text search -->
-    <div class="col-md-3">
-        <label for="id_q" class="form-label">Search by name</label>
-        <input type="text"
-               name="q"
-               id="id_q"
-               class="form-control"
-               placeholder="Hel, Chałupy..."
-               value="{{ current_query }}">
-    </div>
-
-    <!-- Buttons -->
-    <div class="col-md-3 d-flex gap-2">
-        <button type="submit" class="btn btn-primary mt-auto">
-            Apply filters
-        </button>
-        <a href="{% url 'spots:spot_list' %}" class="btn btn-secondary mt-auto">
-            Reset
-        </a>
-    </div>
-</form>
-
-<hr>
-
-<!-- SPOTS LIST -->
 {% if spots %}
-    <div class="row" id="spots-container">
-        {# initial 20 spots #}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4" id="spots-container">
         {% include "spots/_spot_cards.html" with spots=spots %}
     </div>
-
-    <!-- VIEW MORE BUTTON -->
     {% if has_next_page %}
         <div class="text-center mt-4">
-            <button
-                id="load-more-btn"
-                class="btn btn-outline-primary"
+            <!-- URL endpointu przekazany przez data-url — bez inline JS -->
+            <button id="load-more-btn" class="btn btn-outline-secondary"
                 data-next-page="2"
+                data-url="{% url 'spots:spot_list_load_more' %}"
                 data-country="{{ current_country }}"
                 data-difficulty="{{ current_difficulty }}"
-                data-query="{{ current_query|default_if_none:'' }}"
-            >
-                View more
+                data-query="{{ current_query|default_if_none:'' }}">
+                Load more
             </button>
         </div>
     {% endif %}
 {% else %}
-    <p>No spots found for selected filters.</p>
+    <p class="text-muted">No spots found. Try adjusting your filters.</p>
 {% endif %}
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const loadMoreBtn = document.getElementById("load-more-btn");
-    if (!loadMoreBtn) {
-        return;
-    }
-
-    const spotsContainer = document.getElementById("spots-container");
-
-    loadMoreBtn.addEventListener("click", function () {
-        const nextPage = this.dataset.nextPage;
-        const country = this.dataset.country;
-        const difficulty = this.dataset.difficulty;
-        const query = this.dataset.query;
-
-        const params = new URLSearchParams({
-            page: nextPage,
-        });
-
-        if (country) params.append("country", country);
-        if (difficulty) params.append("difficulty", difficulty);
-        if (query) params.append("q", query);
-
-        fetch("{% url 'spots:spot_list_load_more' %}?" + params.toString(), {
-            headers: {
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Append new cards
-            spotsContainer.insertAdjacentHTML("beforeend", data.html);
-
-            if (data.has_next) {
-                loadMoreBtn.dataset.nextPage = data.next_page;
-            } else {
-                loadMoreBtn.remove();
-            }
-        })
-        .catch(err => {
-            console.error("Error loading more spots:", err);
-        });
-    });
-});
-</script>
+<!-- Logika load-more w statycznym pliku JS — URL endpointu w data-url na przycisku -->
+<script src="{% static 'js/spot-list.js' %}"></script>
 {% endblock %}

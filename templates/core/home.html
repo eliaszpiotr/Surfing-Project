@@ -2,170 +2,92 @@
 {% load static %}
 
 {% block extra_css %}
-    <!-- Leaflet CSS -->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin=""
-    />
-
-    <!-- MarkerCluster CSS -->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
-    />
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
-    />
-
-    <style>
-        #home-map {
-            height: 500px;
-            width: 100%;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-    </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<style>
+    #home-map { height: 420px; width: 100%; border-radius: 0.375rem; }
+</style>
 {% endblock %}
 
 {% block content %}
-    {# MAPA #}
-    <h2>Surf spots map</h2>
-    <p class="text-muted">
-        All surf spots currently in the database are shown on the map.
-    </p>
 
-    <div id="home-map"></div>
+<div class="mb-4">
+    <div id="home-map" data-url="{% url 'spots:spot_map_data' %}"></div>
+</div>
 
-    <hr class="my-4">
-
-    {# UPCOMING SESSIONS #}
-    <h2>Upcoming sessions</h2>
-
-    {% if user.is_authenticated %}
+<div class="row">
+    <div class="col-md-8">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <p class="mb-0">
-                Here you can see all upcoming surf sessions created by users.
-            </p>
-
-            <a href="{% url 'surf_sessions:session_create' %}" class="btn btn-primary btn-sm">
-                Create new session
-            </a>
+            <h4 class="mb-0">Upcoming sessions</h4>
+            {% if user.is_authenticated %}
+                <a href="{% url 'surf_sessions:session_create' %}" class="btn btn-success btn-sm">+ New session</a>
+            {% endif %}
         </div>
 
-        {% if upcoming_sessions %}
-            <div class="list-group">
-                {% for s in upcoming_sessions %}
-                    <a href="{% url 'surf_sessions:session_detail' s.pk %}"
-                       class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">
-                                {{ s.name }} at {{ s.spot.name }} ({{ s.spot.country }})
-                            </h5>
-                            <small>
-                                <strong>{{ s.date|date:"M j, Y" }}</strong>
-                                at {{ s.start_time|time:"H:i" }}
-                                {% if s.end_time %} – {{ s.end_time|time:"H:i" }}{% endif %}
-                            </small>
-                        </div>
-                        <p class="mb-1">
-                            Organizer: {{ s.organizer.username }}<br>
-                            Participants: {{ s.participants_count }}
-                            {% if s.max_participants %}/ {{ s.max_participants }}{% endif %}
-                            {% if s.is_full %}
-                                <span class="badge bg-danger ms-2">Full</span>
-                            {% endif %}
-                        </p>
-                        {% if s.note %}
-                            <small class="text-muted">
-                                {{ s.note|truncatechars:80 }}
-                            </small>
-                        {% endif %}
-                    </a>
-                {% endfor %}
-            </div>
+        {% if user.is_authenticated %}
+            {% if upcoming_sessions %}
+                <div class="list-group mb-3">
+                    {% for s in upcoming_sessions %}
+                        <a href="{% url 'surf_sessions:session_detail' s.pk %}"
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ s.name }}</strong>
+                                <div class="text-muted small">
+                                    {{ s.spot.name }}, {{ s.spot.country }} &middot; @{{ s.organizer.username }}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="small fw-bold">{{ s.date|date:"M j" }}</div>
+                                <div class="text-muted small">
+                                    {{ s.participants_count }}{% if s.max_participants %}/{{ s.max_participants }}{% endif %}
+                                    {% if s.is_full %}
+                                        <span class="badge bg-danger">Full</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'surf_sessions:session_list' %}" class="btn btn-outline-secondary btn-sm">
+                    View all sessions
+                </a>
+            {% else %}
+                <p class="text-muted">No upcoming sessions. <a href="{% url 'surf_sessions:session_create' %}">Create one</a>.</p>
+            {% endif %}
         {% else %}
-            <p>No upcoming sessions yet.</p>
+            <div class="card">
+                <div class="card-body text-center py-4">
+                    <h5 class="card-title">Join the community</h5>
+                    <p class="card-text text-muted">Log in to see upcoming surf sessions and find people to surf with.</p>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-success me-2">Log in</a>
+                    <a href="{% url 'accounts:register' %}" class="btn btn-outline-secondary">Sign up</a>
+                </div>
+            </div>
         {% endif %}
-    {% else %}
-        <p class="mt-3">
-            You must be logged in to view upcoming sessions.
-        </p>
+    </div>
 
-        <a href="{% url 'accounts:login' %}?next={{ request.path }}"
-           class="btn btn-outline-primary btn-sm">
-            Log in
-        </a>
-    {% endif %}
+{#    <div class="col-md-4">#}
+{#        <div class="card">#}
+{#            <div class="card-body">#}
+{#                <h6 class="card-title text-muted text-uppercase small fw-bold">Quick links</h6>#}
+{#                <div class="d-flex flex-column gap-2">#}
+{#                    <a href="{% url 'spots:spot_list' %}" class="btn btn-outline-secondary btn-sm text-start">Browse surf spots</a>#}
+{#                    <a href="{% url 'surf_sessions:session_list' %}" class="btn btn-outline-secondary btn-sm text-start">All sessions</a>#}
+{#                    {% if user.is_authenticated %}#}
+{#                        <a href="{% url 'spots:spot_create' %}" class="btn btn-outline-secondary btn-sm text-start">Add a spot</a>#}
+{#                        <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary btn-sm text-start">My profile</a>#}
+{#                    {% endif %}#}
+{#                </div>#}
+{#            </div>#}
+{#        </div>#}
+{#    </div>#}
+</div>
 
 {% endblock %}
 
 {% block extra_js %}
-    <!-- Leaflet JS -->
-    <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin=""
-    ></script>
-
-    <!-- MarkerCluster JS -->
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const map = L.map("home-map", {
-                center: [54.5, 18.5],
-                zoom: 4,
-                worldCopyJump: true
-            });
-
-            map.attributionControl.setPrefix(false);
-
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                maxZoom: 19,
-                attribution: "&copy; OpenStreetMap contributors",
-            }).addTo(map);
-
-            const markers = L.markerClusterGroup();
-            const bounds = [];
-
-            fetch("{% url 'spots:spot_map_data' %}")
-                .then(response => response.json())
-                .then(data => {
-                    if (!Array.isArray(data) || data.length === 0) {
-                        return;
-                    }
-
-                    data.forEach(spot => {
-                        if (spot.lat == null || spot.lng == null) {
-                            return;
-                        }
-
-                        const marker = L.marker([spot.lat, spot.lng]);
-
-                        const popupHtml = `
-                            <strong>${spot.name}</strong><br>
-                            ${spot.country} • ${spot.difficulty}<br>
-                            <a href="/spots/${spot.slug}/">View details</a>
-                        `;
-
-                        marker.bindPopup(popupHtml);
-                        markers.addLayer(marker);
-
-                        bounds.push([spot.lat, spot.lng]);
-                    });
-
-                    map.addLayer(markers);
-
-                    if (bounds.length > 0) {
-                        map.fitBounds(bounds, { padding: [30, 30] });
-                    }
-                })
-                .catch(err => {
-                    console.error("Failed to load spot map data:", err);
-                });
-        });
-    </script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="{% static 'js/home-map.js' %}"></script>
 {% endblock %}
