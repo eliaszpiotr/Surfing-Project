@@ -1,20 +1,21 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h2>Delete spot</h2>
-
-    <p>
-        Are you sure you want to delete surf spot
-        <strong>"{{ object.name }}"</strong>?
-    </p>
-
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">
-            Yes, delete
-        </button>
-        <a href="{% url 'spots:spot_detail' object.slug %}" class="btn btn-secondary">
-            Cancel
-        </a>
-    </form>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="mb-3">Delete spot</h2>
+        <p>
+            Are you sure you want to permanently delete <strong>"{{ object.name }}"</strong>?
+            This action cannot be undone.
+        </p>
+        <p class="text-muted small">
+            {{ object.country.name }} &middot; Added on {{ object.created_at|date:"M j, Y" }}
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, delete</button>
+            <a href="{% url 'spots:spot_detail' object.slug %}" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
 {% endblock %}

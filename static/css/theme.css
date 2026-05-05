@@ -1,0 +1,81 @@
+/* ============================================================
+   THEME: black & white button overrides
+   Replaces Bootstrap's coloured btn-* variants with a clean
+   black / white scheme throughout the whole project.
+   ============================================================ */
+
+/* --- Solid buttons (success, primary, danger, secondary, etc.) --- */
+.btn-success,
+.btn-primary,
+.btn-danger,
+.btn-warning,
+.btn-info,
+.btn-secondary,
+.btn-dark {
+    background-color: #111 !important;
+    border-color: #111 !important;
+    color: #fff !important;
+}
+
+.btn-success:hover,  .btn-success:focus,
+.btn-primary:hover,  .btn-primary:focus,
+.btn-danger:hover,   .btn-danger:focus,
+.btn-warning:hover,  .btn-warning:focus,
+.btn-info:hover,     .btn-info:focus,
+.btn-secondary:hover,.btn-secondary:focus,
+.btn-dark:hover,     .btn-dark:focus {
+    background-color: #333 !important;
+    border-color: #333 !important;
+    color: #fff !important;
+}
+
+/* --- Outline buttons --- */
+.btn-outline-success,
+.btn-outline-primary,
+.btn-outline-danger,
+.btn-outline-warning,
+.btn-outline-info,
+.btn-outline-secondary,
+.btn-outline-dark {
+    background-color: transparent !important;
+    border-color: #111 !important;
+    color: #111 !important;
+}
+
+.btn-outline-success:hover,  .btn-outline-success:focus,
+.btn-outline-primary:hover,  .btn-outline-primary:focus,
+.btn-outline-danger:hover,   .btn-outline-danger:focus,
+.btn-outline-warning:hover,  .btn-outline-warning:focus,
+.btn-outline-info:hover,     .btn-outline-info:focus,
+.btn-outline-secondary:hover,.btn-outline-secondary:focus,
+.btn-outline-dark:hover,     .btn-outline-dark:focus {
+    background-color: #111 !important;
+    border-color: #111 !important;
+    color: #fff !important;
+}
+
+/* --- Badge colours --- */
+.badge.bg-success,
+.badge.bg-primary,
+.badge.bg-danger,
+.badge.bg-warning,
+.badge.bg-info,
+.badge.bg-secondary {
+    background-color: #555 !important;
+    color: #fff !important;
+}
+
+/* --- Nav logout link (was text-danger) --- */
+.navbar .text-danger {
+    color: #111 !important;
+}
+
+/* --- Nav tab active indicator --- */
+.nav-tabs .nav-link.active {
+    border-bottom-color: #111;
+    color: #111;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #111;
+}

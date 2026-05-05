@@ -2,122 +2,111 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-4">
-        <!-- Avatar + basic info -->
-        <div class="card mb-3">
+    <div class="col-md-4 mb-4">
+        <div class="card">
             <div class="card-body text-center">
                 {% if profile and profile.profile_picture %}
-                    <img src="{{ profile.profile_picture.url }}"
-                         alt="Profile picture"
-                         class="img-fluid rounded-circle mb-3"
-                         style="max-width: 150px;">
+                    <img src="{{ profile.profile_picture.url }}" alt="Profile picture"
+                         class="rounded-circle mb-3" style="width:96px;height:96px;object-fit:cover;">
                 {% else %}
-                    <div class="bg-secondary rounded-circle mb-3"
-                         style="width: 150px; height: 150px;"></div>
+                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3"
+                         style="width:96px;height:96px;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
                 {% endif %}
 
-                <h3>{{ request.user.username|default:request.user.email }}</h3>
+                <h5 class="card-title mb-1">@{{ request.user.username }}</h5>
                 {% if request.user.first_name or request.user.last_name %}
-                    <p class="mb-1">
-                        <strong>
-                            {{ request.user.get_full_name }}
-                        </strong>
-                    </p>
+                    <p class="text-muted small mb-1">{{ request.user.get_full_name }}</p>
                 {% endif %}
-
                 {% if profile and profile.country %}
-                    <p class="mb-1">
-                        Country:
-                        <strong>{{ profile.country.name }}</strong>
-                    </p>
+                    <p class="text-muted small mb-2">{{ profile.country.name }}</p>
                 {% endif %}
-
-                <a href="{% url 'accounts:profile_settings' %}"
-                   class="btn btn-outline-primary btn-sm mt-2">
+                {% if profile and profile.bio %}
+                    <p class="small mb-3">{{ profile.bio }}</p>
+                {% endif %}
+                <a href="{% url 'accounts:profile_settings' %}" class="btn btn-outline-secondary btn-sm">
                     Edit profile
                 </a>
-            </div>
-        </div>
-
-        <!-- Bio -->
-        <div class="card">
-            <div class="card-header">About</div>
-            <div class="card-body">
-                {% if profile and profile.bio %}
-                    <p>{{ profile.bio }}</p>
-                {% else %}
-                    <p class="text-muted">
-                        You have not added any bio yet.
-                    </p>
-                {% endif %}
             </div>
         </div>
     </div>
 
     <div class="col-md-8">
-        <!-- Organized sessions -->
-        <div class="mb-4">
-            <h4>Organized sessions</h4>
-            {% if organized_sessions %}
-                <ul class="list-group mb-3">
-                    {% for session in organized_sessions %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <a href="{% url 'surf_sessions:session_detail' session.pk %}">
-                                    {{ session.spot.name }}
-                                </a>
-                                <div class="text-muted small">
-                                    {{ session.date }} · {{ session.start_time|time:"H:i" }}
-                                    {% if session.end_time %}
-                                        – {{ session.end_time|time:"H:i" }}
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <span class="badge bg-secondary">
-                                {{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %}
-                            </span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="text-muted">
-                    You are not organizing any upcoming sessions.
-                </p>
-            {% endif %}
-        </div>
+        <ul class="nav nav-tabs mb-3" id="profileTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab"
+                        data-bs-target="#upcoming" type="button" role="tab">
+                    Upcoming ({{ upcoming_sessions.count }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="history-tab" data-bs-toggle="tab"
+                        data-bs-target="#history" type="button" role="tab">
+                    History ({{ history_sessions.count }})
+                </button>
+            </li>
+        </ul>
 
-        <!-- Joined sessions -->
-        <div>
-            <h4>Joined sessions</h4>
-            {% if joined_sessions %}
-                <ul class="list-group mb-3">
-                    {% for session in joined_sessions %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <a href="{% url 'surf_sessions:session_detail' session.pk %}">
-                                    {{ session.spot.name }}
-                                </a>
-                                <div class="text-muted small">
-                                    {{ session.date }} · {{ session.start_time|time:"H:i" }}
-                                    {% if session.end_time %}
-                                        – {{ session.end_time|time:"H:i" }}
-                                    {% endif %}
+        <div class="tab-content" id="profileTabsContent">
+            <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+                {% if upcoming_sessions %}
+                    <div class="list-group">
+                        {% for session in upcoming_sessions %}
+                            <a href="{% url 'surf_sessions:session_detail' session.pk %}"
+                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ session.name }}</strong>
+                                    <div class="text-muted small">
+                                        {{ session.spot.name }} &middot; {{ session.date|date:"M j, Y" }} at {{ session.start_time|time:"H:i" }}
+                                        {% if session.organizer == request.user %}
+                                            &middot; <span class="text-muted">organizer</span>
+                                        {% else %}
+                                            &middot; @{{ session.organizer.username }}
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <div class="small">
-                                    Organizer: {{ session.organizer.email }}
+                                <span class="badge bg-secondary">
+                                    {{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %} surfers
+                                </span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No upcoming sessions.</p>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane fade" id="history" role="tabpanel">
+                {% if history_sessions %}
+                    <div class="list-group">
+                        {% for session in history_sessions %}
+                            <a href="{% url 'surf_sessions:session_detail' session.pk %}"
+                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ session.name }}</strong>
+                                    <div class="text-muted small">
+                                        {{ session.spot.name }} &middot; {{ session.date|date:"M j, Y" }}
+                                        {% if session.organizer == request.user %}
+                                            &middot; <span class="text-muted">organizer</span>
+                                        {% else %}
+                                            &middot; @{{ session.organizer.username }}
+                                        {% endif %}
+                                    </div>
                                 </div>
-                            </div>
-                            <span class="badge bg-secondary">
-                                {{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %}
-                            </span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="text-muted">
-                    You have not joined any upcoming sessions.
-                </p>
-            {% endif %}
+                                <span class="badge bg-secondary">
+                                    {{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %} surfers
+                                </span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No past sessions yet.</p>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

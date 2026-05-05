@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6 col-lg-5">
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
 
         <h2 class="mb-4">Edit profile</h2>
 
@@ -12,7 +12,16 @@
 
             <div class="mb-3">
                 {{ form.profile_picture.label_tag }}
+                {% if form.instance.profile_picture %}
+                    <div class="mb-2">
+                        <img src="{{ form.instance.profile_picture.url }}"
+                             class="rounded-circle"
+                             style="width:64px;height:64px;object-fit:cover;"
+                             alt="Current profile picture">
+                    </div>
+                {% endif %}
                 {{ form.profile_picture }}
+                <div class="form-text">JPG, PNG or WebP, max 5MB</div>
                 {% for error in form.profile_picture.errors %}
                     <div class="text-danger small">{{ error }}</div>
                 {% endfor %}
@@ -35,7 +44,7 @@
             </div>
 
             <button type="submit" class="btn btn-success mt-2">
-                Save
+                Save changes
             </button>
             <a href="{% url 'accounts:profile' %}" class="btn btn-secondary mt-2">
                 Cancel

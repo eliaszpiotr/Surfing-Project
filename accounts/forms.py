@@ -105,7 +105,7 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = ["profile_picture", "country", "bio"]
         widgets = {
-            "profile_picture": forms.ClearableFileInput(
+            "profile_picture": forms.FileInput(
                 attrs={"class": "form-control"}
             ),
             "country": forms.Select(

@@ -2,175 +2,174 @@
 {% load static %}
 
 {% block extra_css %}
-    <link
-            rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-            crossorigin=""
-    >
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+    #spot-map { height: 320px; border-radius: 0.375rem; }
+</style>
 {% endblock %}
 
 {% block content %}
-    <h2>
-        {% if object %}
-            Edit surf spot
-        {% else %}
-            Add a surf spot
-        {% endif %}
-    </h2>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h2 class="mb-1">{% if object %}Edit surf spot{% else %}Add a surf spot{% endif %}</h2>
+        <p class="text-muted mb-4">
+            {% if not object %}Share a new surf spot with the community{% else %}Update the details for this spot{% endif %}
+        </p>
 
-    <p class="text-muted">
-        Click on the map to set the spot location. Latitude and longitude will fill in automatically.
-    </p>
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {{ form.non_field_errors }}
 
-    <form method="post" enctype="multipart/form-data" class="mt-3">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
+            <h5 class="mb-3">Basic info</h5>
 
-        <div class="mb-3">
-            <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
-            {{ form.name }}
-            {{ form.name.errors }}
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Spot name</label>
+                {{ form.name }}
+                {% for error in form.name.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
 
-        <div class="mb-3">
-            <label for="{{ form.country.id_for_label }}" class="form-label">Country</label>
-            {{ form.country }}
-            {{ form.country.errors }}
-        </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Country</label>
+                    {{ form.country }}
+                    {% for error in form.country.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Location details</label>
+                    {{ form.location_details }}
+                    {% for error in form.location_details.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="{{ form.location_details.id_for_label }}" class="form-label">Location details</label>
-            {{ form.location_details }}
-            {{ form.location_details.errors }}
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                {{ form.description }}
+                {% for error in form.description.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
 
-        <div class="mb-3">
-            <label for="{{ form.difficulty.id_for_label }}" class="form-label">Difficulty</label>
-            {{ form.difficulty }}
-            {{ form.difficulty.errors }}
-        </div>
+            <div class="mb-4">
+                <label class="form-label">Photo</label>
+                {{ form.image }}
+                <div class="form-text">JPG, PNG &middot; max 10MB (optional)</div>
+                {% for error in form.image.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
 
-        <div class="mb-3">
-            <label for="{{ form.surf_break_type.id_for_label }}" class="form-label">Surf break type</label>
-            {{ form.surf_break_type }}
-            {{ form.surf_break_type.errors }}
-        </div>
+            <h5 class="mb-3">Surf details</h5>
 
-        <div class="mb-3">
-            <label for="{{ form.wave_direction.id_for_label }}" class="form-label">Wave direction</label>
-            {{ form.wave_direction }}
-            {{ form.wave_direction.errors }}
-        </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Difficulty</label>
+                    {{ form.difficulty }}
+                    {% for error in form.difficulty.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Break type</label>
+                    {{ form.surf_break_type }}
+                    {% for error in form.surf_break_type.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Wave direction</label>
+                    {{ form.wave_direction }}
+                    {% for error in form.wave_direction.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="{{ form.optimal_swell_direction.id_for_label }}" class="form-label">Optimal swell
-                direction</label>
-            {{ form.optimal_swell_direction }}
-            {{ form.optimal_swell_direction.errors }}
-        </div>
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Optimal swell direction</label>
+                    {{ form.optimal_swell_direction }}
+                    {% for error in form.optimal_swell_direction.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Optimal wind direction</label>
+                    {{ form.optimal_wind_direction }}
+                    {% for error in form.optimal_wind_direction.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="{{ form.optimal_wind_direction.id_for_label }}" class="form-label">Optimal wind
-                direction</label>
-            {{ form.optimal_wind_direction }}
-            {{ form.optimal_wind_direction.errors }}
-        </div>
+            <h5 class="mb-2">Location on map</h5>
+            <p class="text-muted small mb-2">Click on the map to set the exact location of this spot.</p>
+            <div id="spot-map" class="mb-2"></div>
+            <div id="coords-display" class="text-muted small mb-4" style="display:none;">
+                Lat: <span id="lat-display">—</span> &nbsp; Lng: <span id="lng-display">—</span>
+            </div>
+            <div style="display:none;">
+                {{ form.latitude }}
+                {{ form.longitude }}
+            </div>
 
-        <div class="mb-3">
-            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
-            {{ form.description }}
-            {{ form.description.errors }}
-        </div>
-
-        <div class="mb-3">
-            <label for="{{ form.image.id_for_label }}" class="form-label">Image</label>
-            {{ form.image }}
-            {{ form.image.errors }}
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Location Map</label>
-            <div id="spot-map" style="height: 400px; width: 100%; border-radius: 4px; border: 1px solid #ced4da;"></div>
-        </div>
-
-        <div class="mb-3" style="display:none;">
-            {{ form.latitude }}
-        </div>
-
-        <div class="mb-3" style="display:none;">
-            {{ form.longitude }}
-        </div>
-
-        <button type="submit" class="btn btn-success">
-            {% if object %}Save changes{% else %}Save spot{% endif %}
-        </button>
-
-        <a href="{% url 'spots:spot_list' %}" class="btn btn-secondary ms-2">
-            Cancel
-        </a>
-    </form>
-
+            <button type="submit" class="btn btn-success">
+                {% if object %}Save changes{% else %}Save spot{% endif %}
+            </button>
+            <a href="{% url 'spots:spot_list' %}" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-    <script
-            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""
-    ></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const latInput = document.getElementById("id_latitude");
+        const lngInput = document.getElementById("id_longitude");
+        const latDisplay = document.getElementById("lat-display");
+        const lngDisplay = document.getElementById("lng-display");
+        const coordsDisplay = document.getElementById("coords-display");
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const latInput = document.getElementById("id_latitude");
-            const lngInput = document.getElementById("id_longitude");
+        const defaultLat = parseFloat(latInput.value) || 20;
+        const defaultLng = parseFloat(lngInput.value) || 0;
 
-            const defaultLat = parseFloat(latInput.value) || 54.5;
-            const defaultLng = parseFloat(lngInput.value) || 18.5;
-
-            const map = L.map("spot-map", {
-                center: [defaultLat, defaultLng],
-                zoom: 5,
-                worldCopyJump: true   // efekt “przeskoku” przy panningu
-            });
-
-            map.attributionControl.setPrefix(false);
-
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                maxZoom: 18,
-                attribution: "&copy; OpenStreetMap",
-                // noWrap NIE ustawiamy – chcemy wrapowanie kafelków
-            }).addTo(map);
-
-            let marker = null;
-
-            function setMarkerAndInputs(lat, lng) {
-                // normalizujemy współrzędne do zakresu [-90,90], [-180,180]
-                const wrapped = L.latLng(lat, lng).wrap();
-                const wLat = wrapped.lat;
-                const wLng = wrapped.lng;
-
-                if (marker) {
-                    marker.setLatLng([wLat, wLng]);
-                } else {
-                    marker = L.marker([wLat, wLng]).addTo(map);
-                }
-
-                latInput.value = wLat.toFixed(6);
-                lngInput.value = wLng.toFixed(6);
-            }
-
-            // jeśli mamy już wartości (edycja / błąd walidacji)
-            if (latInput.value && lngInput.value) {
-                const lat = parseFloat(latInput.value);
-                const lng = parseFloat(lngInput.value);
-                setMarkerAndInputs(lat, lng);
-                map.setView([lat, lng], 10);
-            }
-
-            map.on("click", function (e) {
-                setMarkerAndInputs(e.latlng.lat, e.latlng.lng);
-            });
+        const map = L.map("spot-map", {
+            center: [defaultLat, defaultLng],
+            zoom: latInput.value ? 10 : 2,
+            worldCopyJump: true
         });
-    </script>
+        map.attributionControl.setPrefix(false);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        let marker = null;
+
+        function setMarker(lat, lng) {
+            const wrapped = L.latLng(lat, lng).wrap();
+            if (marker) marker.setLatLng([wrapped.lat, wrapped.lng]);
+            else marker = L.marker([wrapped.lat, wrapped.lng]).addTo(map);
+            latInput.value = wrapped.lat.toFixed(6);
+            lngInput.value = wrapped.lng.toFixed(6);
+            latDisplay.textContent = wrapped.lat.toFixed(4);
+            lngDisplay.textContent = wrapped.lng.toFixed(4);
+            coordsDisplay.style.display = 'block';
+        }
+
+        if (latInput.value && lngInput.value) {
+            setMarker(parseFloat(latInput.value), parseFloat(lngInput.value));
+            map.setView([parseFloat(latInput.value), parseFloat(lngInput.value)], 10);
+        }
+
+        map.on("click", e => setMarker(e.latlng.lat, e.latlng.lng));
+    });
+</script>
 {% endblock %}

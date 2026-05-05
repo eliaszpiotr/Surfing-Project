@@ -1,96 +1,125 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h2>{{ session.name }}</h2>
-    <p>
-        Session at {{ session.spot.name }}
-    </p>
+<a href="{% url 'spots:spot_detail' session.spot.slug %}" class="text-muted small text-decoration-none d-inline-block mb-3">
+    &larr; Back to {{ session.spot.name }}
+</a>
 
-    <p class="text-muted">
-        {{ session.date }} · {{ session.start_time|time:"H:i" }}
-        {% if session.end_time %}
-            – {{ session.end_time|time:"H:i" }}
-        {% endif %}
-    </p>
-
-    <p>
-        Organizer:
-        <strong>{{ session.organizer.username }}</strong>
-    </p>
-
-    <p>
-        Participants: {{ session.participants_count }}
-        {% if session.max_participants %}
-            / {{ session.max_participants }}
-        {% endif %}
-    </p>
-
-    {% if session.note %}
-        <p>Note: {{ session.note }}</p>
-    {% endif %}
-
-    <hr>
-
-    {# ACTION BUTTONS #}
-    {% if is_organizer %}
-        <a href="{% url 'surf_sessions:session_update' session.pk %}"
-           class="btn btn-outline-primary btn-sm">
-            Edit session
-        </a>
-        <a href="{% url 'surf_sessions:session_delete' session.pk %}"
-           class="btn btn-outline-danger btn-sm ms-2">
-            Delete session
-        </a>
-    {% endif %}
-
-    {% if user.is_authenticated and not is_organizer %}
-        {% if already_joined %}
-            <form method="post" action="{% url 'surf_sessions:session_leave' session.pk %}" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-outline-danger btn-sm">
-                    Leave session
-                </button>
-            </form>
-        {% elif can_join %}
-            <form method="post" action="{% url 'surf_sessions:session_join' session.pk %}" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success btn-sm">
-                    Join session
-                </button>
-            </form>
-        {% else %}
-            <p class="text-danger mt-2">You cannot join this session.</p>
-        {% endif %}
-    {% elif not user.is_authenticated %}
-        <p class="mt-2">
-            <a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a> to join this session.
+<div class="row">
+    <div class="col-md-8">
+        <h2 class="mb-1">{{ session.name }}</h2>
+        <p class="text-muted mb-4">
+            <a href="{% url 'spots:spot_detail' session.spot.slug %}" class="text-decoration-none">
+                {{ session.spot.name }}, {{ session.spot.country }}
+            </a>
         </p>
-    {% endif %}
 
-    <hr>
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold mb-3">Session details</h6>
+                <div class="row row-cols-2 g-3">
+                    <div>
+                        <div class="text-muted small">Date</div>
+                        <div>{{ session.date|date:"M j, Y" }}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Time</div>
+                        <div>{{ session.start_time|time:"H:i" }}{% if session.end_time %} &ndash; {{ session.end_time|time:"H:i" }}{% endif %}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Surfers</div>
+                        <div>{{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %}</div>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Status</div>
+                        <div>
+                            {% if session.is_full %}
+                                <span class="badge bg-danger">Full</span>
+                            {% else %}
+                                <span class="badge bg-success">Open</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <h4>Participants list</h4>
-    {% if session.participants_count %}
-        <ul class="list-group mb-3">
+        {% if session.note %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold mb-2">Note from organizer</h6>
+                <p class="mb-0">{{ session.note }}</p>
+            </div>
+        </div>
+        {% endif %}
 
-            <li class="list-group-item d-flex align-items-center">
-                {{ session.organizer.username }}
-                <span class="badge bg-secondary ms-2">Organizer</span>
-            </li>
-
-            {% for p in session.participants.all %}
-                {% if p != session.organizer %}
-                    <li class="list-group-item">
-                        {{ p.username }}
-                    </li>
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold mb-3">
+                    Participants ({{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %})
+                </h6>
+                {% if session.participants_count %}
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>@{{ session.organizer.username }}</span>
+                            <span class="badge bg-secondary">Organizer</span>
+                        </li>
+                        {% for p in session.participants.all %}
+                            {% if p != session.organizer %}
+                            <li class="list-group-item px-0">@{{ p.username }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted small mb-0">No participants yet</p>
                 {% endif %}
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="text-muted">No participants yet.</p>
-    {% endif %}
+            </div>
+        </div>
+    </div>
 
-    <a href="{% url 'spots:spot_detail' session.spot.slug %}" class="btn btn-secondary btn-sm">
-        Back to spot
-    </a>
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold mb-2">Organizer</h6>
+                <p class="mb-0">@{{ session.organizer.username }}</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small fw-bold mb-3">Your status</h6>
+
+                {% if is_organizer %}
+                    <p class="text-muted small mb-3">You are organizing this session.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'surf_sessions:session_update' session.pk %}" class="btn btn-outline-secondary btn-sm">Edit session</a>
+                        <a href="{% url 'surf_sessions:session_delete' session.pk %}" class="btn btn-outline-danger btn-sm">Delete session</a>
+                    </div>
+
+                {% elif user.is_authenticated %}
+                    {% if already_joined %}
+                        <p class="text-success small fw-semibold mb-3">You are in this session</p>
+                        <form method="post" action="{% url 'surf_sessions:session_leave' session.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">Leave session</button>
+                        </form>
+                    {% elif can_join %}
+                        <p class="text-muted small mb-3">This session is open.</p>
+                        <form method="post" action="{% url 'surf_sessions:session_join' session.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success w-100">Join session</button>
+                        </form>
+                    {% else %}
+                        <span class="badge bg-danger mb-2">Session full</span>
+                        <p class="text-muted small mb-0">No spots available.</p>
+                    {% endif %}
+
+                {% else %}
+                    <p class="text-muted small mb-3">Log in to join</p>
+                    <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-success btn-sm w-100">Log in</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
