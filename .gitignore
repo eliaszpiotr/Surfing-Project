@@ -209,3 +209,11 @@ __marimo__/
 
 # PyCharm idea
 .idea/
+
+media/profile_pictures/IMG_*.jpeg
+media/profile_pictures/IMG_*.jpg
+media/profile_pictures/IMG_*.png
+
+**/IMG_*.jpeg
+**/IMG_*.jpg
+**/IMG_*.png
