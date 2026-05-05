@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from PIL import Image
 
-from .models import Spot
+from .models import Spot, SpotPhoto
 
 
 def _validate_image_content(image_file):
@@ -85,3 +85,30 @@ class SpotForm(forms.ModelForm):
             raise ValidationError("Provide both latitude and longitude, or leave both empty.")
 
         return cleaned_data
+
+
+class SpotPhotoForm(forms.ModelForm):
+    """Form for adding a captioned photo to an existing spot."""
+
+    class Meta:
+        model = SpotPhoto
+        fields = ["image", "caption"]
+        widgets = {
+            "image": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            "caption": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Write a short caption for this photo",
+                }
+            ),
+        }
+
+    def clean_image(self):
+        """Enforce image validation consistently at form level."""
+        image = self.cleaned_data.get("image")
+        if not image or not hasattr(image, "size"):
+            return image
+        if image.size > 10 * 1024 * 1024:
+            raise ValidationError("Image must be under 10MB.")
+        _validate_image_content(image)
+        return image

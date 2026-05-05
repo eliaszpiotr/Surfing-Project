@@ -116,6 +116,70 @@
                 {% endif %}
             </div>
         </div>
+
+        <div class="card mb-3" id="community-photos">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Community photos</h6>
+                    <span class="text-muted small">{{ spot_photos|length }} photo{{ spot_photos|length|pluralize }}</span>
+                </div>
+
+                {% if spot_photos %}
+                    <div class="row row-cols-1 row-cols-md-2 g-3 mb-3">
+                        {% for photo in spot_photos %}
+                            <div class="col">
+                                <div class="border rounded overflow-hidden h-100">
+                                    <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" class="img-fluid w-100" style="height:220px;object-fit:cover;">
+                                    <div class="p-3">
+                                        <div class="fw-semibold small">{{ photo.caption }}</div>
+                                        <div class="text-muted small mt-1">
+                                            @{{ photo.author.username }} &middot; {{ photo.created_at|date:"M j, Y" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-3">No photos yet.</p>
+                {% endif %}
+
+                {% if user.is_authenticated and photo_form %}
+                    {% if show_photo_form %}
+                        <form method="post" enctype="multipart/form-data" action="{% url 'spots:spot_photo_create' spot.slug %}" class="mb-0">
+                            {% csrf_token %}
+                            {{ photo_form.non_field_errors }}
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    {{ photo_form.image }}
+                                    {% for error in photo_form.image.errors %}
+                                        <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ photo_form.caption }}
+                                    {% for error in photo_form.caption.errors %}
+                                        <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-2 d-grid">
+                                    <button type="submit" class="btn btn-success btn-sm">Save photo</button>
+                                </div>
+                            </div>
+                            <div class="form-text">JPG, PNG or WebP, max 10MB.</div>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'spots:spot_detail' spot.slug %}?add_photo=1#community-photos" class="btn btn-outline-secondary btn-sm">
+                            Add photo
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted small mb-0">
+                        <a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a> to add your own photo and caption.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <div class="col-md-4">

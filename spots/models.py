@@ -1,8 +1,31 @@
-from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db import models
+import io
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import UploadedFile
+from django.core.validators import FileExtensionValidator, MinValueValidator, MaxValueValidator
+from django.db import models
 from django_countries.fields import CountryField
 from django.utils.text import slugify
+from PIL import Image
+
+
+def validate_image_content(file):
+    """Verify that a freshly uploaded file is a genuine image."""
+    if not isinstance(file, UploadedFile):
+        return
+    try:
+        data = file.read()
+        img = Image.open(io.BytesIO(data))
+        img.verify()
+    except Exception:
+        raise ValidationError(
+            "Uploaded file is not a valid image. "
+            "Please upload a JPG, PNG or WebP file."
+        )
+    finally:
+        if hasattr(file, "seek"):
+            file.seek(0)
 
 
 class Spot(models.Model):
@@ -110,3 +133,40 @@ class Spot(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class SpotPhoto(models.Model):
+    """A user-submitted photo attached to a surf spot."""
+
+    spot = models.ForeignKey(
+        Spot,
+        on_delete=models.CASCADE,
+        related_name="photos",
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="spot_photos",
+    )
+    image = models.ImageField(
+        upload_to="spot_gallery/",
+        validators=[
+            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"]),
+            validate_image_content,
+        ],
+    )
+    caption = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def clean(self):
+        """Enforce a 10 MB size limit on uploaded spot photos."""
+        super().clean()
+        if self.image and hasattr(self.image, "size") and self.image.size > 10 * 1024 * 1024:
+            raise ValidationError({"image": "Image must be under 10MB."})
+
+    def __str__(self):
+        """Return a short label for the photo entry."""
+        return f"{self.spot.name}: {self.caption[:40]}"

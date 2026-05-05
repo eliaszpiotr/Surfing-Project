@@ -1,15 +1,17 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.utils import timezone
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.core.paginator import Paginator
 from django.template.loader import render_to_string
+from django.template.response import TemplateResponse
 
-from .forms import SpotForm
+from .forms import SpotForm, SpotPhotoForm
 from .models import Spot
 from surf_sessions.models import Session
 
@@ -34,6 +36,28 @@ def get_filtered_spots(request):
         qs = qs.filter(name__icontains=query.strip())
 
     return qs
+
+
+def build_spot_detail_context(request, spot, photo_form=None, show_photo_form=False):
+    """Build the shared context for a spot detail page and photo upload errors."""
+    today = timezone.localdate()
+    show_form = request.user.is_authenticated and (
+        show_photo_form or request.GET.get("add_photo") == "1"
+    )
+
+    return {
+        "spot": spot,
+        "upcoming_sessions": (
+            Session.objects
+            .filter(spot=spot, date__gte=today)
+            .select_related("organizer")
+            .prefetch_related("participants")
+            .order_by("date", "start_time")
+        ),
+        "spot_photos": spot.photos.select_related("author").order_by("-created_at"),
+        "photo_form": photo_form if request.user.is_authenticated else None,
+        "show_photo_form": show_form,
+    }
 
 
 class SpotAuthorOrStaffRequiredMixin(UserPassesTestMixin):
@@ -129,14 +153,12 @@ class SpotDetailView(DetailView):
     def get_context_data(self, **kwargs):
         """Add upcoming sessions for this spot to the template context."""
         context = super().get_context_data(**kwargs)
-        today = timezone.localdate()
-
-        context["upcoming_sessions"] = (
-            Session.objects
-            .filter(spot=self.object, date__gte=today)
-            .select_related("organizer")
-            .prefetch_related("participants")
-            .order_by("date", "start_time")
+        context.update(
+            build_spot_detail_context(
+                self.request,
+                self.object,
+                photo_form=SpotPhotoForm(),
+            )
         )
         return context
 
@@ -148,7 +170,7 @@ class SpotCreateView(LoginRequiredMixin, CreateView):
     form_class = SpotForm
     template_name = "spots/spot_form.html"
 
-    login_url = "login"
+    login_url = "accounts:login"
     redirect_field_name = "next"
 
     def form_valid(self, form):
@@ -177,7 +199,7 @@ class SpotUpdateView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, UpdateV
     slug_field = "slug"
     slug_url_kwarg = "slug"
 
-    login_url = "login"
+    login_url = "accounts:login"
     redirect_field_name = "next"
 
     def form_valid(self, form):
@@ -203,7 +225,7 @@ class SpotDeleteView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, DeleteV
     slug_url_kwarg = "slug"
     success_url = reverse_lazy("spots:spot_list")
 
-    login_url = "login"
+    login_url = "accounts:login"
     redirect_field_name = "next"
 
     def delete(self, request, *args, **kwargs):
@@ -237,3 +259,34 @@ class SpotMapDataView(View):
         ]
 
         return JsonResponse(data, safe=False)
+
+
+class SpotPhotoCreateView(LoginRequiredMixin, View):
+    """Allow authenticated users to add captioned photos to a surf spot."""
+
+    login_url = "accounts:login"
+
+    def post(self, request, slug):
+        """Create a new photo entry or re-render the detail page with errors."""
+        spot = get_object_or_404(Spot, slug=slug)
+        form = SpotPhotoForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            photo = form.save(commit=False)
+            photo.spot = spot
+            photo.author = request.user
+            photo.save()
+            messages.success(request, "Photo added successfully!")
+            return redirect("spots:spot_detail", slug=spot.slug)
+
+        return TemplateResponse(
+            request,
+            "spots/spot_detail.html",
+            build_spot_detail_context(
+                request,
+                spot,
+                photo_form=form,
+                show_photo_form=True,
+            ),
+            status=200,
+        )
