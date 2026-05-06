@@ -61,3 +61,28 @@ def test_home_allows_anonymous_access(client):
     response = client.get(reverse("home"))
 
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_home_links_session_organizer_to_public_profile(client):
+    organizer = create_user("link-home@test.com", "linkhome")
+    spot = Spot.objects.create(
+        name="Hossegor",
+        author=organizer,
+        country="FR",
+        latitude=43.665,
+        longitude=-1.444,
+    )
+    Session.objects.create(
+        name="Evening surf",
+        spot=spot,
+        organizer=organizer,
+        date=timezone.localdate() + timedelta(days=1),
+        start_time="18:00",
+    )
+    client.force_login(organizer)
+
+    response = client.get(reverse("home"))
+
+    assert response.status_code == 200
+    assert reverse("accounts:user_profile", args=[organizer.username]) in response.content.decode()

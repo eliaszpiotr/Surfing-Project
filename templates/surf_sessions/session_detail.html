@@ -58,15 +58,15 @@
                 <h6 class="text-muted text-uppercase small fw-bold mb-3">
                     Participants ({{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %})
                 </h6>
-                {% if session.participants_count %}
+                        {% if session.participants_count %}
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <span>@{{ session.organizer.username }}</span>
+                            <a href="{% url 'accounts:user_profile' session.organizer.username %}" class="text-decoration-none">@{{ session.organizer.username }}</a>
                             <span class="badge bg-secondary">Organizer</span>
                         </li>
                         {% for p in session.participants.all %}
                             {% if p != session.organizer %}
-                            <li class="list-group-item px-0">@{{ p.username }}</li>
+                            <li class="list-group-item px-0"><a href="{% url 'accounts:user_profile' p.username %}" class="text-decoration-none">@{{ p.username }}</a></li>
                             {% endif %}
                         {% endfor %}
                     </ul>
@@ -81,7 +81,7 @@
         <div class="card mb-3">
             <div class="card-body">
                 <h6 class="text-muted text-uppercase small fw-bold mb-2">Organizer</h6>
-                <p class="mb-0">@{{ session.organizer.username }}</p>
+                <p class="mb-0"><a href="{% url 'accounts:user_profile' session.organizer.username %}" class="text-decoration-none">@{{ session.organizer.username }}</a></p>
             </div>
         </div>
 
