@@ -1,11 +1,17 @@
 from datetime import timedelta
+import importlib
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.core.files.base import ContentFile
+from django.urls import clear_url_caches
 from django.urls import reverse
 from django.utils import timezone
+from django.test.utils import override_settings
 
-from spots.models import Spot
+import surfingproject.urls as project_urls
+from spots.models import Spot, SpotPhoto
 from surf_sessions.models import Session
 
 User = get_user_model()
@@ -86,3 +92,55 @@ def test_home_links_session_organizer_to_public_profile(client):
 
     assert response.status_code == 200
     assert reverse("accounts:user_profile", args=[organizer.username]) in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_seed_demo_rebuilds_missing_media_files():
+    call_command("seed_demo")
+
+    user = User.objects.get(username="anna")
+    photo = SpotPhoto.objects.get(caption="Cold sunrise lines")
+
+    assert user.profile.profile_picture.storage.exists(user.profile.profile_picture.name)
+    assert photo.image.storage.exists(photo.image.name)
+
+    user.profile.profile_picture.storage.delete(user.profile.profile_picture.name)
+    photo.image.storage.delete(photo.image.name)
+
+    assert not user.profile.profile_picture.storage.exists(user.profile.profile_picture.name)
+    assert not photo.image.storage.exists(photo.image.name)
+
+    call_command("seed_demo")
+
+    user.profile.refresh_from_db()
+    photo.refresh_from_db()
+
+    assert user.profile.profile_picture.storage.exists(user.profile.profile_picture.name)
+    assert photo.image.storage.exists(photo.image.name)
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=False, SERVE_MEDIA_LOCALLY=True)
+def test_media_is_served_when_debug_is_false_and_local_media_is_enabled(client):
+    clear_url_caches()
+    importlib.reload(project_urls)
+
+    user = create_user("media@test.com", "mediauser")
+    spot = Spot.objects.create(
+        name="Cold Hawaii",
+        author=user,
+        country="DK",
+        latitude=56.956,
+        longitude=8.694,
+    )
+    photo = SpotPhoto.objects.create(
+        spot=spot,
+        author=user,
+        caption="Grey lines",
+        image=ContentFile(b"fake image bytes", name="grey-lines.jpg"),
+    )
+
+    response = client.get(photo.image.url)
+
+    assert response.status_code == 200
+    assert b"".join(response.streaming_content) == b"fake image bytes"
