@@ -4,6 +4,8 @@ Surfing Project is a Django web application built around one core idea: make org
 
 The app combines surf spot discovery, session planning, lightweight social features, messaging, and notifications in one product-oriented MVP. It is designed as a portfolio project, but implemented with realistic app structure, Dockerized startup, media uploads, tests, and deployment-minded defaults.
 
+Surfing Project is a redesigned and improved successor to my earlier project, [SurferGuide](https://github.com/eliaszpiotr?utm_source=chatgpt.com), rebuilt with a cleaner architecture, better scalability, and a stronger focus on real-world surf session coordination.
+
 ## What The Project Does
 
 The app allows users to:
