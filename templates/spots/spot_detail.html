@@ -3,33 +3,6 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<style>
-    #spot-map { height: 260px; border-radius: 0.375rem; }
-    .community-photo-card {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-    .community-photo-image {
-        height: 220px;
-        object-fit: cover;
-    }
-    .community-photo-body {
-        min-height: 96px;
-    }
-    .community-photo-caption {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    .hidden-photos {
-        display: none;
-    }
-    .hidden-photos.is-visible {
-        display: flex;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -39,7 +12,7 @@
 
 {% if spot.image %}
     <img src="{{ spot.image.url }}" alt="{{ spot.name }}"
-         class="img-fluid rounded mb-4" style="max-height:300px;width:100%;object-fit:cover;">
+         class="img-fluid rounded mb-4 spot-hero-image">
 {% endif %}
 
 <div class="row">
@@ -236,6 +209,7 @@
                 {% if spot.latitude and spot.longitude %}
                     <!-- Dane mapy przekazywane przez data-* — bez inline JS -->
                     <div id="spot-map"
+                         class="spot-detail-map"
                          data-lat="{{ spot.latitude }}"
                          data-lng="{{ spot.longitude }}"
                          data-name="{{ spot.name|escapejs }}"></div>

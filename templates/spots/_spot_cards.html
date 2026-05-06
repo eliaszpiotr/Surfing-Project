@@ -3,10 +3,10 @@
 <div class="col">
     <div class="card h-100">
         {% if spot.image %}
-            <img src="{{ spot.image.url }}" class="card-img-top" alt="{{ spot.name }}"
-                 style="height:160px;object-fit:cover;" loading="lazy">
+            <img src="{{ spot.image.url }}" class="card-img-top spot-card-image" alt="{{ spot.name }}"
+                 loading="lazy">
         {% else %}
-            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:160px;">
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center spot-card-image-placeholder">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5">
                     <path d="M2 19c1.5-2 3.5-3 6-3s4.5 1 6 3"/>
                     <path d="M2 13c2-3 5-5 10-5s8 2 10 5"/>
@@ -26,7 +26,7 @@
 {#                <span class="badge bg-danger">{{ diff }}</span>#}
 {#            {% endif %}#}
             {% if spot.description %}
-                <p class="card-text small text-muted mt-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ spot.description }}</p>
+                <p class="card-text small text-muted mt-2 spot-card-description">{{ spot.description }}</p>
             {% endif %}
         </div>
         <div class="card-footer text-muted small d-flex justify-content-between">
