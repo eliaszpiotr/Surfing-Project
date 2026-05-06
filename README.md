@@ -1,56 +1,180 @@
-# Surfing Project 🏄‍♂️
+# Surfing Project
 
-**Surfing Project** is a web platform designed to help surfers organize their life on the water. Unlike typical social media, this tool focuses on utility: finding spots, planning sessions, and coordinating with friends.
+Surfing Project is a Django web application built around one core idea: make organizing surf sessions easier than using generic social media or scattered group chats.
 
-> **Current Status:** 🚧 Under Development (MVP Phase)
+The app combines surf spot discovery, session planning, lightweight social features, messaging, and notifications in one product-oriented MVP. It is designed as a portfolio project, but implemented with realistic app structure, Dockerized startup, media uploads, tests, and deployment-minded defaults.
 
-## 🎯 Project Goal
-To create a "tool for handling surf life" rather than just another social feed. The core value lies in coordination—knowing **where**, **when**, and **with whom** to surf.
+## What The Project Does
 
-## 🌟 Key Features
+The app allows users to:
 
-### 1. Accounts & Profiles
-* Custom User Model (Email-based login).
-* User Profiles with bio, country, and avatar.
-* Secure authentication system.
+- create an account and manage a personal profile
+- add and browse surf spots with coordinates, surf details, and descriptions
+- create surf sessions for a specific spot
+- join and leave sessions
+- upload community photos to spots with captions
+- follow other users
+- open private 1:1 conversations with other surfers
+- use a session chat visible to the organizer and participants
+- receive notifications for follows and new messages
 
-### 2. Surf Spots
-* Database of surfing spots with coordinates and descriptions.
-* Community-driven: Users can add and discover new spots.
-* Filtering by location and difficulty (planned).
+This is not meant to be a generic “social feed.” The main product focus is coordination:
 
-### 3. Surf Sessions (The Heart of the App) 
-* Organize sessions (e.g., "Dawn patrol at Hel, 6:00 AM").
-* Join/Leave functionality for participants.
-* Session status tracking (Planned / Completed / Canceled).
-* Session-specific comments for coordination.
+- where to surf
+- when to surf
+- with whom to surf
 
-### 4. Future Roadmap 🚀
-* **Social Connections:** Friends lists and "follow" logic.
-* **Session Logs (Mini-Strava):** Post-session reports with photos and ratings.
-* **Notifications & Messages:** Internal messaging system and alerts for upcoming sessions.
+## Main Features
 
-## 🛠️ Tech Stack
+### Accounts and Profiles
 
-* **Backend:** Python 3.12, Django 5.x
-* **Database:** PostgreSQL
-* **Containerization:** Docker & Docker Compose
-* **Frontend:** HTML5, CSS3, Bootstrap 5 (Focus on clean, responsive UI)
-* **Testing:** Pytest, Pytest-Django
+- custom user model with email-based authentication
+- public user profiles by username
+- avatar, country, and bio editing
+- followers / following system
+- uploaded spot photos shown on the user profile
 
-## 📂 Project Structure
+### Surf Spots
 
-The project is organized into modular apps for scalability:
+- create, edit, and delete spots
+- store coordinates, country, location details, break type, difficulty, swell and wind direction
+- detail page with map and sessions
+- community photo gallery with captions
+
+### Surf Sessions
+
+- create sessions with date, time, note, and optional participant limit
+- join and leave session flow
+- organizer-only edit and delete actions
+- upcoming and history session splits on profile pages
+
+### Messaging
+
+- private direct conversations between users
+- public chat inside a session
+- access control for session chat based on participation
+
+### Notifications
+
+- follow notifications
+- direct message notifications
+- session message notifications
+- unread counter in the navigation
+
+## Tech Stack
+
+- Python 3.12
+- Django 5
+- PostgreSQL
+- Docker and Docker Compose
+- Bootstrap 5
+- Pillow
+- Pytest + pytest-django
+- WhiteNoise
+- Gunicorn
+
+## Project Structure
 
 ```text
 .
-├── accounts/          # Auth & Profiles
-├── core/              # Main settings & Home
-├── spots/             # Spot management
-├── media/             # User uploads (avatars)
-├── static/            # CSS, JS, Images
-├── templates/         # HTML Templates (base, home, accounts)
+├── accounts/          # Authentication, profiles, following
+├── chat/              # Direct chat and session chat
+├── core/              # Home page, settings helpers, demo seed command
+├── notifications/     # Notification inbox and unread counts
+├── spots/             # Surf spots and community photos
+├── surf_sessions/     # Session planning and participation
+├── static/            # CSS and JavaScript
+├── templates/         # HTML templates
 ├── Dockerfile
 ├── docker-compose.yml
+├── entrypoint.sh
 ├── manage.py
 └── requirements.txt
+```
+
+## Run With Docker
+
+Docker is the primary way to run this project.
+
+### Start
+
+From the project root:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+This will:
+
+- start PostgreSQL
+- build the Django image
+- apply migrations
+- collect static files
+- seed demo data automatically
+- run the app with Gunicorn
+
+### Open The App
+
+Open: [http://localhost:8000](http://localhost:8000)
+
+### Demo Accounts
+
+The Docker setup seeds demo accounts automatically:
+
+- `demo.anna@example.com` / `pass1234`
+- `demo.marc@example.com` / `pass1234`
+- `demo.kai@example.com` / `pass1234`
+
+## Environment Notes
+
+The current container setup is designed for local/demo usage:
+
+- app bound to `127.0.0.1:8000`
+- PostgreSQL not exposed publicly
+- `DEBUG=False`
+- local media served explicitly for demo purposes
+
+## Demo Data
+
+The demo seed creates:
+
+- demo users
+- demo spots
+- demo sessions
+- demo spot gallery images
+- demo profile images
+
+The seed command is written to be idempotent, so repeated runs should not create duplicate demo records.
+
+## Why This Project Exists
+
+This project was built to show practical full-stack product thinking, not just isolated CRUD screens.
+
+The focus areas include:
+
+- clean Django app separation
+- realistic user flows
+- controlled permissions
+- Dockerized setup for fast review
+- media handling
+- messaging and notifications
+- regression tests for core behavior
+
+## Current Scope
+
+This is still an MVP, not a finished production.
+
+Areas intentionally kept simple:
+
+- no WebSockets yet, chat is request/response based
+- no advanced search or recommendation engine
+- notifications are inbox-style, not realtime push
+- no cloud object storage for uploads yet
+- no production reverse proxy setup included in repo
+
+## License
+
+This project is source-available for portfolio and viewing purposes only.
+All rights reserved.
+Unauthorized use, copying, modification, or distribution is prohibited.
