@@ -9,7 +9,7 @@ from django.utils import timezone
 from PIL import Image
 
 from accounts.models import UserProfile
-from spots.models import Spot
+from spots.models import Spot, SpotPhoto
 from surf_sessions.models import Session
 
 User = get_user_model()
@@ -158,6 +158,38 @@ def test_profile_splits_upcoming_and_history_sessions(client):
     assert response.status_code == 200
     assert list(response.context["upcoming_sessions"]) == [upcoming]
     assert list(response.context["history_sessions"]) == [past]
+
+
+@pytest.mark.django_db
+def test_public_profile_is_accessible_by_username(client):
+    user = create_user("public@test.com", "publicuser")
+    user.first_name = "Public"
+    user.last_name = "Surfer"
+    user.save(update_fields=["first_name", "last_name"])
+
+    response = client.get(reverse("accounts:user_profile", args=[user.username]))
+
+    assert response.status_code == 200
+    assert response.context["profile_user"] == user
+    assert response.context["is_own_profile"] is False
+
+
+@pytest.mark.django_db
+def test_profile_includes_user_uploaded_spot_photos(client):
+    user = create_user("gallery@test.com", "galleryuser")
+    spot = create_spot(user, name="Rincon")
+    photo = SpotPhoto.objects.create(
+        spot=spot,
+        author=user,
+        caption="Golden hour",
+        image=make_profile_image(name="spot-photo.jpg"),
+    )
+
+    client.force_login(user)
+    response = client.get(reverse("accounts:profile"))
+
+    assert response.status_code == 200
+    assert list(response.context["uploaded_spot_photos"]) == [photo]
 
 
 @pytest.mark.django_db

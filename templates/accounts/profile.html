@@ -1,5 +1,28 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<style>
+    .profile-photo-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .profile-photo-image {
+        height: 220px;
+        object-fit: cover;
+    }
+    .profile-photo-body {
+        min-height: 108px;
+    }
+    .profile-photo-caption {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-4 mb-4">
@@ -18,9 +41,9 @@
                     </div>
                 {% endif %}
 
-                <h5 class="card-title mb-1">@{{ request.user.username }}</h5>
-                {% if request.user.first_name or request.user.last_name %}
-                    <p class="text-muted small mb-1">{{ request.user.get_full_name }}</p>
+                <h5 class="card-title mb-1">@{{ profile_user.username }}</h5>
+                {% if profile_user.first_name or profile_user.last_name %}
+                    <p class="text-muted small mb-1">{{ profile_user.get_full_name }}</p>
                 {% endif %}
                 {% if profile and profile.country %}
                     <p class="text-muted small mb-2">{{ profile.country.name }}</p>
@@ -28,9 +51,11 @@
                 {% if profile and profile.bio %}
                     <p class="small mb-3">{{ profile.bio }}</p>
                 {% endif %}
-                <a href="{% url 'accounts:profile_settings' %}" class="btn btn-outline-secondary btn-sm">
-                    Edit profile
-                </a>
+                {% if is_own_profile %}
+                    <a href="{% url 'accounts:profile_settings' %}" class="btn btn-outline-secondary btn-sm">
+                        Edit profile
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -56,23 +81,22 @@
                 {% if upcoming_sessions %}
                     <div class="list-group">
                         {% for session in upcoming_sessions %}
-                            <a href="{% url 'surf_sessions:session_detail' session.pk %}"
-                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
-                                    <strong>{{ session.name }}</strong>
+                                    <strong><a href="{% url 'surf_sessions:session_detail' session.pk %}" class="text-decoration-none text-dark">{{ session.name }}</a></strong>
                                     <div class="text-muted small">
                                         {{ session.spot.name }} &middot; {{ session.date|date:"M j, Y" }} at {{ session.start_time|time:"H:i" }}
-                                        {% if session.organizer == request.user %}
+                                        {% if session.organizer == profile_user %}
                                             &middot; <span class="text-muted">organizer</span>
                                         {% else %}
-                                            &middot; @{{ session.organizer.username }}
+                                            &middot; <a href="{% url 'accounts:user_profile' session.organizer.username %}" class="text-decoration-none">@{{ session.organizer.username }}</a>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <span class="badge bg-secondary">
                                     {{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %} surfers
                                 </span>
-                            </a>
+                            </div>
                         {% endfor %}
                     </div>
                 {% else %}
@@ -84,23 +108,22 @@
                 {% if history_sessions %}
                     <div class="list-group">
                         {% for session in history_sessions %}
-                            <a href="{% url 'surf_sessions:session_detail' session.pk %}"
-                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
-                                    <strong>{{ session.name }}</strong>
+                                    <strong><a href="{% url 'surf_sessions:session_detail' session.pk %}" class="text-decoration-none text-dark">{{ session.name }}</a></strong>
                                     <div class="text-muted small">
                                         {{ session.spot.name }} &middot; {{ session.date|date:"M j, Y" }}
-                                        {% if session.organizer == request.user %}
+                                        {% if session.organizer == profile_user %}
                                             &middot; <span class="text-muted">organizer</span>
                                         {% else %}
-                                            &middot; @{{ session.organizer.username }}
+                                            &middot; <a href="{% url 'accounts:user_profile' session.organizer.username %}" class="text-decoration-none">@{{ session.organizer.username }}</a>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <span class="badge bg-secondary">
                                     {{ session.participants_count }}{% if session.max_participants %}/{{ session.max_participants }}{% endif %} surfers
                                 </span>
-                            </a>
+                            </div>
                         {% endfor %}
                     </div>
                 {% else %}
@@ -108,6 +131,35 @@
                 {% endif %}
             </div>
         </div>
+    </div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="text-muted text-uppercase small fw-bold mb-0">Uploaded photos</h6>
+            <span class="text-muted small">{{ uploaded_spot_photos|length }} photo{{ uploaded_spot_photos|length|pluralize }}</span>
+        </div>
+
+        {% if uploaded_spot_photos %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+                {% for photo in uploaded_spot_photos %}
+                    <div class="col">
+                        <div class="border rounded overflow-hidden profile-photo-card">
+                            <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" class="img-fluid w-100 profile-photo-image">
+                            <div class="p-3 profile-photo-body">
+                                <div class="fw-semibold profile-photo-caption">{{ photo.caption }}</div>
+                                <div class="text-muted small mt-1">
+                                    <a href="{% url 'spots:spot_detail' photo.spot.slug %}" class="text-decoration-none">{{ photo.spot.name }}</a> &middot; {{ photo.created_at|date:"M j, Y" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted small mb-0">No uploaded photos yet.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

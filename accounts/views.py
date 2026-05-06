@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.timezone import now
@@ -16,9 +16,36 @@ from .forms import (
     CustomAuthenticationForm,
 )
 from .models import UserProfile
+from spots.models import SpotPhoto
 from surf_sessions.models import Session
 
 User = get_user_model()
+
+
+def build_profile_context(profile_user):
+    """Build the profile context for either the current user or a public profile page."""
+    today = now().date()
+    return {
+        "profile_user": profile_user,
+        "profile": getattr(profile_user, "profile", None),
+        "upcoming_sessions": (
+            Session.objects.filter(participants=profile_user, date__gte=today)
+            .select_related("spot", "organizer")
+            .prefetch_related("participants")
+            .order_by("date", "start_time")
+        ),
+        "history_sessions": (
+            Session.objects.filter(participants=profile_user, date__lt=today)
+            .select_related("spot", "organizer")
+            .prefetch_related("participants")
+            .order_by("-date", "-start_time")
+        ),
+        "uploaded_spot_photos": (
+            SpotPhoto.objects.filter(author=profile_user)
+            .select_related("spot")
+            .order_by("-created_at")
+        ),
+    }
 
 
 class RegisterView(FormView):
@@ -50,7 +77,7 @@ class CustomLoginView(LoginView):
 
     def get_success_url(self):
         """Redirect to 'next' if safe, otherwise fall back to home."""
-        next_url = self.request.GET.get("next")
+        next_url = self.get_redirect_url()
         if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={self.request.get_host()}):
             return next_url
         return reverse("home")
@@ -78,22 +105,8 @@ class ProfileView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         """Add profile, upcoming sessions, and session history to the context."""
         context = super().get_context_data(**kwargs)
-        user = self.request.user
-        today = now().date()
-
-        context["profile"] = getattr(user, "profile", None)
-        context["upcoming_sessions"] = (
-            Session.objects.filter(participants=user, date__gte=today)
-            .select_related("spot", "organizer")
-            .prefetch_related("participants")
-            .order_by("date", "start_time")
-        )
-        context["history_sessions"] = (
-            Session.objects.filter(participants=user, date__lt=today)
-            .select_related("spot", "organizer")
-            .prefetch_related("participants")
-            .order_by("-date", "-start_time")
-        )
+        context.update(build_profile_context(self.request.user))
+        context["is_own_profile"] = True
         return context
 
 
@@ -117,3 +130,16 @@ class ProfileSettingsView(LoginRequiredMixin, UpdateView):
     def form_invalid(self, form):
         messages.error(self.request, "Please correct the errors below.")
         return super().form_invalid(form)
+
+
+class PublicProfileView(TemplateView):
+    """Display a public profile page for a user identified by username."""
+
+    template_name = "accounts/profile.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile_user = get_object_or_404(User, username=self.kwargs["username"])
+        context.update(build_profile_context(profile_user))
+        context["is_own_profile"] = self.request.user.is_authenticated and self.request.user == profile_user
+        return context
