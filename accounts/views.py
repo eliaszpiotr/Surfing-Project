@@ -22,12 +22,19 @@ from surf_sessions.models import Session
 User = get_user_model()
 
 
-def build_profile_context(profile_user):
+def build_profile_context(profile_user, viewer=None):
     """Build the profile context for either the current user or a public profile page."""
     today = now().date()
     return {
         "profile_user": profile_user,
         "profile": getattr(profile_user, "profile", None),
+        "followers_count": profile_user.followers.count(),
+        "following_count": profile_user.following.count(),
+        "is_following_profile_user": (
+            viewer.is_authenticated
+            and viewer != profile_user
+            and viewer.is_following(profile_user)
+        ) if viewer else False,
         "upcoming_sessions": (
             Session.objects.filter(participants=profile_user, date__gte=today)
             .select_related("spot", "organizer")
@@ -105,7 +112,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         """Add profile, upcoming sessions, and session history to the context."""
         context = super().get_context_data(**kwargs)
-        context.update(build_profile_context(self.request.user))
+        context.update(build_profile_context(self.request.user, viewer=self.request.user))
         context["is_own_profile"] = True
         return context
 
@@ -140,6 +147,28 @@ class PublicProfileView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         profile_user = get_object_or_404(User, username=self.kwargs["username"])
-        context.update(build_profile_context(profile_user))
+        context.update(build_profile_context(profile_user, viewer=self.request.user))
         context["is_own_profile"] = self.request.user.is_authenticated and self.request.user == profile_user
         return context
+
+
+class FollowToggleView(LoginRequiredMixin, View):
+    """Toggle follow/unfollow for the target user identified by username."""
+
+    login_url = "accounts:login"
+
+    def post(self, request, username):
+        target_user = get_object_or_404(User, username=username)
+
+        if request.user == target_user:
+            messages.error(request, "You cannot follow your own profile.")
+            return redirect("accounts:user_profile", username=target_user.username)
+
+        if request.user.is_following(target_user):
+            request.user.following.remove(target_user)
+            messages.success(request, f"You unfollowed @{target_user.username}.")
+        else:
+            request.user.following.add(target_user)
+            messages.success(request, f"You are now following @{target_user.username}.")
+
+        return redirect("accounts:user_profile", username=target_user.username)

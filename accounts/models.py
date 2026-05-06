@@ -37,6 +37,12 @@ def validate_image_content(file):
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
+    following = models.ManyToManyField(
+        "self",
+        symmetrical=False,
+        related_name="followers",
+        blank=True,
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
@@ -49,6 +55,22 @@ class CustomUser(AbstractUser):
     def get_full_name(self):
         """Return the user's full name as a single string."""
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def followers_count(self):
+        """Return the number of users following this account."""
+        return self.followers.count()
+
+    @property
+    def following_count(self):
+        """Return the number of accounts this user follows."""
+        return self.following.count()
+
+    def is_following(self, other_user):
+        """Return True when this user follows the given user."""
+        if not other_user or not self.is_authenticated:
+            return False
+        return self.following.filter(pk=other_user.pk).exists()
 
 
 class UserProfile(models.Model):
@@ -72,9 +94,12 @@ class UserProfile(models.Model):
     def clean(self):
         """Enforce a 5 MB size limit on profile pictures."""
         super().clean()
-        if self.profile_picture and hasattr(self.profile_picture, "size"):
-            if self.profile_picture.size > 5 * 1024 * 1024:
-                raise ValidationError({"profile_picture": "Image must be under 5MB."})
+        if not self.profile_picture:
+            return
+
+        uploaded = getattr(self.profile_picture, "_file", None)
+        if uploaded and hasattr(uploaded, "size") and uploaded.size > 5 * 1024 * 1024:
+            raise ValidationError({"profile_picture": "Image must be under 5MB."})
 
     def __str__(self):
         """Return the linked user's username, falling back to email."""

@@ -172,6 +172,8 @@ def test_public_profile_is_accessible_by_username(client):
     assert response.status_code == 200
     assert response.context["profile_user"] == user
     assert response.context["is_own_profile"] is False
+    assert response.context["followers_count"] == 0
+    assert response.context["following_count"] == 0
 
 
 @pytest.mark.django_db
@@ -190,6 +192,48 @@ def test_profile_includes_user_uploaded_spot_photos(client):
 
     assert response.status_code == 200
     assert list(response.context["uploaded_spot_photos"]) == [photo]
+
+
+@pytest.mark.django_db
+def test_follow_toggle_creates_relationship_and_updates_counts(client):
+    follower = create_user("follower@test.com", "follower")
+    target = create_user("target@test.com", "target")
+    client.force_login(follower)
+
+    response = client.post(reverse("accounts:follow_toggle", args=[target.username]), follow=False)
+
+    assert response.status_code == 302
+    follower.refresh_from_db()
+    target.refresh_from_db()
+    assert follower.is_following(target) is True
+    assert target.followers_count == 1
+    assert follower.following_count == 1
+
+
+@pytest.mark.django_db
+def test_follow_toggle_second_post_unfollows_user(client):
+    follower = create_user("double@test.com", "double")
+    target = create_user("double-target@test.com", "doubletarget")
+    follower.following.add(target)
+    client.force_login(follower)
+
+    response = client.post(reverse("accounts:follow_toggle", args=[target.username]), follow=False)
+
+    assert response.status_code == 302
+    follower.refresh_from_db()
+    assert follower.is_following(target) is False
+
+
+@pytest.mark.django_db
+def test_follow_toggle_does_not_allow_following_self(client):
+    user = create_user("self@test.com", "selfuser")
+    client.force_login(user)
+
+    response = client.post(reverse("accounts:follow_toggle", args=[user.username]), follow=False)
+
+    assert response.status_code == 302
+    user.refresh_from_db()
+    assert user.following_count == 0
 
 
 @pytest.mark.django_db

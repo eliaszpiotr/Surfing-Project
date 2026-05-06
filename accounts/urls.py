@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, CustomLoginView, ProfileView, ProfileSettingsView, LogoutView, PublicProfileView
+from .views import RegisterView, CustomLoginView, ProfileView, ProfileSettingsView, LogoutView, PublicProfileView, FollowToggleView
 
 app_name = "accounts"
 urlpatterns = [
@@ -9,4 +9,5 @@ urlpatterns = [
     path("profile/", ProfileView.as_view(), name="profile"),
     path("profile/settings/", ProfileSettingsView.as_view(), name="profile_settings"),
     path("users/<str:username>/", PublicProfileView.as_view(), name="user_profile"),
+    path("users/<str:username>/follow/", FollowToggleView.as_view(), name="follow_toggle"),
 ]

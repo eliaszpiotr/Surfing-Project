@@ -1,28 +1,5 @@
 {% extends "base.html" %}
 
-{% block extra_css %}
-<style>
-    .profile-photo-card {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-    .profile-photo-image {
-        height: 220px;
-        object-fit: cover;
-    }
-    .profile-photo-body {
-        min-height: 108px;
-    }
-    .profile-photo-caption {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="row">
     <div class="col-md-4 mb-4">
@@ -30,10 +7,9 @@
             <div class="card-body text-center">
                 {% if profile and profile.profile_picture %}
                     <img src="{{ profile.profile_picture.url }}" alt="Profile picture"
-                         class="rounded-circle mb-3" style="width:96px;height:96px;object-fit:cover;">
+                         class="rounded-circle mb-3 profile-avatar">
                 {% else %}
-                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3"
-                         style="width:96px;height:96px;">
+                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3 profile-avatar-fallback">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                             <circle cx="12" cy="7" r="4"/>
@@ -51,10 +27,27 @@
                 {% if profile and profile.bio %}
                     <p class="small mb-3">{{ profile.bio }}</p>
                 {% endif %}
+                <div class="d-flex justify-content-center gap-4 text-center small mb-3">
+                    <div>
+                        <div class="fw-semibold">{{ followers_count }}</div>
+                        <div class="text-muted">Followers</div>
+                    </div>
+                    <div>
+                        <div class="fw-semibold">{{ following_count }}</div>
+                        <div class="text-muted">Following</div>
+                    </div>
+                </div>
                 {% if is_own_profile %}
                     <a href="{% url 'accounts:profile_settings' %}" class="btn btn-outline-secondary btn-sm">
                         Edit profile
                     </a>
+                {% elif user.is_authenticated %}
+                    <form method="post" action="{% url 'accounts:follow_toggle' profile_user.username %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn {% if is_following_profile_user %}btn-outline-secondary{% else %}btn-dark{% endif %} btn-sm">
+                            {% if is_following_profile_user %}Following{% else %}Follow{% endif %}
+                        </button>
+                    </form>
                 {% endif %}
             </div>
         </div>
