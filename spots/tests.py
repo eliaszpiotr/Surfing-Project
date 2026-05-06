@@ -304,6 +304,22 @@ def test_spot_detail_hides_photo_form_for_anonymous_user(client):
 
 
 @pytest.mark.django_db
+def test_spot_detail_shows_more_button_when_gallery_has_more_than_four_photos(client, user, spot):
+    for index in range(5):
+        SpotPhoto.objects.create(
+            spot=spot,
+            author=user,
+            caption=f"Photo {index}",
+            image=make_image_upload(name=f"wave-{index}.jpg"),
+        )
+
+    response = client.get(reverse("spots:spot_detail", args=[spot.slug]))
+
+    assert response.status_code == 200
+    assert "Show more photos" in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_spot_create_requires_login(client):
     response = client.get(reverse("spots:spot_create"), follow=False)
 

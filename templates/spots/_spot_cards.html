@@ -1,7 +1,7 @@
 {% for spot in spots %}
 {% with diff=spot.get_difficulty_display %}
 <div class="col">
-    <a href="{% url 'spots:spot_detail' spot.slug %}" class="card h-100 text-decoration-none text-dark">
+    <div class="card h-100">
         {% if spot.image %}
             <img src="{{ spot.image.url }}" class="card-img-top" alt="{{ spot.name }}"
                  style="height:160px;object-fit:cover;" loading="lazy">
@@ -14,7 +14,7 @@
             </div>
         {% endif %}
         <div class="card-body">
-            <h6 class="card-title mb-1">{{ spot.name }}</h6>
+            <h6 class="card-title mb-1"><a href="{% url 'spots:spot_detail' spot.slug %}" class="text-decoration-none text-dark">{{ spot.name }}</a></h6>
             <p class="text-muted small mb-2">{{ spot.country.name }} &middot; {{ spot.get_surf_break_type_display }}</p>
 {#            {% if spot.difficulty == 'beginner' %}#}
 {#                <span class="badge bg-success">{{ diff }}</span>#}
@@ -30,10 +30,10 @@
             {% endif %}
         </div>
         <div class="card-footer text-muted small d-flex justify-content-between">
-            <span>@{{ spot.author.username }}</span>
+            <a href="{% url 'accounts:user_profile' spot.author.username %}" class="text-decoration-none">@{{ spot.author.username }}</a>
             <span>{{ spot.created_at|date:"M Y" }}</span>
         </div>
-    </a>
+    </div>
 </div>
 {% endwith %}
 {% endfor %}
