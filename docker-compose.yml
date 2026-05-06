@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DOCKER_DB_NAME:-surfing}
+      POSTGRES_USER: ${DOCKER_DB_USER:-surfing}
+      POSTGRES_PASSWORD: ${DOCKER_DB_PASSWORD:-surfing}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DOCKER_DB_USER:-surfing} -d ${DOCKER_DB_NAME:-surfing}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SECRET_KEY: ${DOCKER_SECRET_KEY:-}
+      DEBUG: "False"
+      ALLOWED_HOSTS: ${DOCKER_ALLOWED_HOSTS:-127.0.0.1,localhost}
+      SECURE_SSL_REDIRECT: ${DOCKER_SECURE_SSL_REDIRECT:-False}
+      SESSION_COOKIE_SECURE: ${DOCKER_SESSION_COOKIE_SECURE:-False}
+      CSRF_COOKIE_SECURE: ${DOCKER_CSRF_COOKIE_SECURE:-False}
+      SECURE_HSTS_SECONDS: ${DOCKER_SECURE_HSTS_SECONDS:-0}
+      SECURE_HSTS_INCLUDE_SUBDOMAINS: ${DOCKER_SECURE_HSTS_INCLUDE_SUBDOMAINS:-False}
+      SECURE_HSTS_PRELOAD: ${DOCKER_SECURE_HSTS_PRELOAD:-False}
+      SERVE_MEDIA_LOCALLY: ${DOCKER_SERVE_MEDIA_LOCALLY:-True}
+      DB_ENGINE: postgresql
+      DB_NAME: ${DOCKER_DB_NAME:-surfing}
+      DB_USER: ${DOCKER_DB_USER:-surfing}
+      DB_PASSWORD: ${DOCKER_DB_PASSWORD:-surfing}
+      DB_HOST: db
+      DB_PORT: 5432
+      SQLITE_NAME: db.sqlite3
+      RUN_COLLECTSTATIC: ${DOCKER_RUN_COLLECTSTATIC:-1}
+      RUN_DEMO_SEED: ${DOCKER_RUN_DEMO_SEED:-1}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - media_data:/app/media
+
+volumes:
+  postgres_data:
+  media_data:

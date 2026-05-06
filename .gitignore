@@ -200,6 +200,7 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+.DS_Store
 
 # Marimo
 marimo/_static/
@@ -213,6 +214,12 @@ __marimo__/
 media/profile_pictures/IMG_*.jpeg
 media/profile_pictures/IMG_*.jpg
 media/profile_pictures/IMG_*.png
+media/spot_gallery/*
+!media/spot_gallery/demo-spot-1.jpg
+!media/spot_gallery/demo-spot-2.jpg
+!media/spot_gallery/demo-spot-3.jpg
+!media/spot_gallery/wave.jpg
+
 
 **/IMG_*.jpeg
 **/IMG_*.jpg

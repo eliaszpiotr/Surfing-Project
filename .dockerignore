@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv
+.pytest_cache
+__pycache__
+*.py[codz]
+.idea
+.DS_Store
+.env
+db.sqlite3
+htmlcov
+media/spot_gallery
