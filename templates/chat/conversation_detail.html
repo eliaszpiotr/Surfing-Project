@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<a href="{% url 'chat:conversation_list' %}" class="text-muted small text-decoration-none d-inline-block mb-3">
+    &larr; Back to messages
+</a>
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="mb-1">Chat with @{{ other_user.username }}</h2>
+                <p class="text-muted small mb-0">
+                    <a href="{% url 'accounts:user_profile' other_user.username %}" class="text-decoration-none">View profile</a>
+                </p>
+            </div>
+        </div>
+
+        <div class="border rounded p-3 mb-3 bg-light">
+            {% if conversation.messages.all %}
+                <div class="d-flex flex-column gap-3">
+                    {% for message in conversation.messages.all %}
+                        <div>
+                            <div class="small fw-semibold">
+                                <a href="{% url 'accounts:user_profile' message.author.username %}" class="text-decoration-none">@{{ message.author.username }}</a>
+                                <span class="text-muted fw-normal">&middot; {{ message.created_at|date:"M j, Y H:i" }}</span>
+                            </div>
+                            <div>{{ message.body|linebreaksbr }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted small mb-0">No messages yet. Start the conversation below.</p>
+            {% endif %}
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            {{ message_form.non_field_errors }}
+            <div class="mb-2">
+                {{ message_form.body }}
+                {% for error in message_form.body.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-success btn-sm">Send message</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

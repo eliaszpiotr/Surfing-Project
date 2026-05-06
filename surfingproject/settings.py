@@ -16,6 +16,11 @@ import os
 
 load_dotenv()
 
+
+def env_bool(name, default="False"):
+    """Parse common truthy environment variable values."""
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,11 +32,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = env_bool("DEBUG", "False")
 
 # Prevent accepting all hosts when env var is missing
 _allowed = os.getenv("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [h for h in _allowed.split(",") if h]
+SERVE_MEDIA_LOCALLY = env_bool("SERVE_MEDIA_LOCALLY", "False")
 
 
 # Application definition
@@ -49,7 +55,9 @@ INSTALLED_APPS = [
 
     # Custom apps
     'accounts.apps.AccountsConfig',
+    'chat.apps.ChatConfig',
     'core.apps.CoreConfig',
+    'notifications.apps.NotificationsConfig',
     'spots.apps.SpotsConfig',
     'surf_sessions.apps.SurfSessionsConfig',
 
@@ -57,12 +65,13 @@ INSTALLED_APPS = [
 
 AUTH_USER_MODEL = "accounts.CustomUser"
 
-LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "profile"
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "accounts:profile"
 LOGOUT_REDIRECT_URL = "/"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'surfingproject.middleware.PathSecurityMiddleware',
     'surfingproject.middleware.SecurityHeadersMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -86,6 +95,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'notifications.context_processors.notification_counts',
             ],
         },
     },
@@ -97,16 +107,26 @@ WSGI_APPLICATION = 'surfingproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("DB_NAME"),
-        'USER': os.getenv("DB_USER"),
-        'PASSWORD': os.getenv("DB_PASSWORD"),
-        'HOST': os.getenv("DB_HOST"),
-        'PORT': os.getenv("DB_PORT"),
+db_engine = os.getenv("DB_ENGINE", "postgresql").lower()
+
+if db_engine == "sqlite":
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / os.getenv("SQLITE_NAME", "db.sqlite3"),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv("DB_NAME"),
+            'USER': os.getenv("DB_USER"),
+            'PASSWORD': os.getenv("DB_PASSWORD"),
+            'HOST': os.getenv("DB_HOST"),
+            'PORT': os.getenv("DB_PORT"),
+        }
+    }
 
 
 # Password validation
@@ -147,6 +167,14 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 # collectstatic target — required for production deployment
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -156,14 +184,15 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Security settings — active only in production
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+# HTTPS/security settings are env-driven so Docker can run on plain localhost
+# with DEBUG=False, while real HTTPS deployments can harden cookies/HSTS.
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", "False")
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", "False")
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", "False")
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False")
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", "False")
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True

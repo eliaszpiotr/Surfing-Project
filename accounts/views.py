@@ -16,6 +16,7 @@ from .forms import (
     CustomAuthenticationForm,
 )
 from .models import UserProfile
+from notifications.services import create_follow_notification
 from spots.models import SpotPhoto
 from surf_sessions.models import Session
 
@@ -169,6 +170,7 @@ class FollowToggleView(LoginRequiredMixin, View):
             messages.success(request, f"You unfollowed @{target_user.username}.")
         else:
             request.user.following.add(target_user)
+            create_follow_notification(actor=request.user, recipient=target_user)
             messages.success(request, f"You are now following @{target_user.username}.")
 
         return redirect("accounts:user_profile", username=target_user.username)

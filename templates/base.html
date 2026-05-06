@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Surfing-Project</title>
+    <title>Surfing Project</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Bootstrap CSS (CDN) -->
@@ -18,7 +18,7 @@
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-light bg-light px-4">
-    <a class="navbar-brand" href="{% url 'home' %}">Surfing-Project</a>
+    <a class="navbar-brand" href="{% url 'home' %}">Surfing Project</a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
             data-bs-target="#navbarNav" aria-controls="navbarNav"
@@ -38,6 +38,18 @@
                 </li>
 
                 <li class="nav-item">
+                    <a class="nav-link" href="{% url 'chat:conversation_list' %}">
+                        Messages
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'notifications:list' %}">
+                        Notifications{% if unread_notifications_count %} ({{ unread_notifications_count }}){% endif %}
+                    </a>
+                </li>
+
+                <li class="nav-item">
                     <a class="nav-link" href="{% url 'spots:spot_create' %}">
                         Add spot
                     </a>
@@ -47,15 +59,6 @@
                     <a class="nav-link" href="{% url 'accounts:profile' %}">
                         @{{ user.username }}
                     </a>
-                </li>
-
-                <li class="nav-item">
-                    <form action="{% url 'accounts:logout' %}" method="post" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="nav-link text-dark border-0 bg-transparent">
-                            Logout
-                        </button>
-                    </form>
                 </li>
 
             {% else %}

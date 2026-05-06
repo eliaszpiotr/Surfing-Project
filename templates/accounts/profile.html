@@ -38,16 +38,28 @@
                     </div>
                 </div>
                 {% if is_own_profile %}
-                    <a href="{% url 'accounts:profile_settings' %}" class="btn btn-outline-secondary btn-sm">
-                        Edit profile
-                    </a>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <a href="{% url 'accounts:profile_settings' %}" class="btn btn-outline-secondary btn-sm">
+                            Edit profile
+                        </a>
+                        <form method="post" action="{% url 'accounts:logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-dark btn-sm">Logout</button>
+                        </form>
+                    </div>
                 {% elif user.is_authenticated %}
-                    <form method="post" action="{% url 'accounts:follow_toggle' profile_user.username %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn {% if is_following_profile_user %}btn-outline-secondary{% else %}btn-dark{% endif %} btn-sm">
-                            {% if is_following_profile_user %}Following{% else %}Follow{% endif %}
-                        </button>
-                    </form>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <form method="post" action="{% url 'accounts:follow_toggle' profile_user.username %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn {% if is_following_profile_user %}btn-outline-secondary{% else %}btn-dark{% endif %} btn-sm">
+                                {% if is_following_profile_user %}Unfollow{% else %}Follow{% endif %}
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'chat:direct_start' profile_user.username %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-dark btn-sm">Message</button>
+                        </form>
+                    </div>
                 {% endif %}
             </div>
         </div>

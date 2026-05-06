@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 from .models import Session
 from .forms import SessionForm
 from spots.models import Spot
+from chat.forms import MessageForm
+from chat.models import Conversation
 
 
 class SessionListView(LoginRequiredMixin, ListView):
@@ -55,6 +57,17 @@ class SessionDetailView(DetailView):
         context["is_organizer"] = user.is_authenticated and user == session.organizer
         context["already_joined"] = session.participants.filter(pk=user.pk).exists()
         context["can_join"] = session.can_join(user)
+        context["can_access_session_chat"] = (
+            user.is_authenticated
+            and (user == session.organizer or session.participants.filter(pk=user.pk).exists())
+        )
+        context["session_chat"] = (
+            Conversation.objects
+            .filter(session=session)
+            .prefetch_related("messages__author")
+            .first()
+        )
+        context["session_chat_form"] = MessageForm() if context["can_access_session_chat"] else None
 
         return context
 

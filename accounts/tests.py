@@ -225,6 +225,20 @@ def test_follow_toggle_second_post_unfollows_user(client):
 
 
 @pytest.mark.django_db
+def test_public_profile_shows_unfollow_button_when_already_following(client):
+    follower = create_user("viewfollow@test.com", "viewfollow")
+    target = create_user("viewtarget@test.com", "viewtarget")
+    follower.following.add(target)
+    client.force_login(follower)
+
+    response = client.get(reverse("accounts:user_profile", args=[target.username]))
+
+    assert response.status_code == 200
+    assert "Unfollow" in response.content.decode()
+    assert ">Follow<" not in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_follow_toggle_does_not_allow_following_self(client):
     user = create_user("self@test.com", "selfuser")
     client.force_login(user)
@@ -242,6 +256,20 @@ def test_profile_settings_requires_login(client):
 
     assert response.status_code == 302
     assert reverse("accounts:login") in response.headers["Location"]
+
+
+@pytest.mark.django_db
+def test_logout_is_not_shown_in_navbar_but_is_visible_on_own_profile(client):
+    user = create_user("nav@test.com", "navuser")
+    client.force_login(user)
+
+    home_response = client.get(reverse("home"))
+    profile_response = client.get(reverse("accounts:profile"))
+
+    assert home_response.status_code == 200
+    assert profile_response.status_code == 200
+    assert "Logout" not in home_response.content.decode()
+    assert "Logout" in profile_response.content.decode()
 
 
 @pytest.mark.django_db
