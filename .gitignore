@@ -61,6 +61,7 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 staticfiles/
+backups/
 
 # Flask stuff:
 instance/
@@ -225,4 +226,3 @@ media/spot_gallery/*
 **/IMG_*.jpeg
 **/IMG_*.jpg
 **/IMG_*.png
-
