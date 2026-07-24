@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views import View
@@ -12,6 +13,7 @@ from surfingproject.rate_limits import rate_limited_response, user_or_ip_identif
 
 from .forms import MessageForm
 from .models import Conversation, Message
+from .services import broadcast_chat_message, serialize_message
 from notifications.services import create_direct_message_notification, create_session_message_notifications
 
 User = get_user_model()
@@ -107,14 +109,18 @@ class DirectConversationDetailView(ConversationAccessMixin, DetailView):
             return limited
 
         self.object = self.get_object()
-        form = MessageForm(request.POST)
+        form = MessageForm(request.POST, request.FILES)
         if form.is_valid():
             message = Message.objects.create(
                 conversation=self.object,
                 author=request.user,
                 body=form.cleaned_data["body"],
+                image=form.cleaned_data.get("image"),
             )
             create_direct_message_notification(message)
+            broadcast_chat_message(message)
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"type": "message", "message": serialize_message(message)})
             return redirect("chat:conversation_detail", pk=self.object.pk)
 
         context = self.get_context_data(message_form=form)
@@ -138,14 +144,18 @@ class SessionMessageCreateView(LoginRequiredMixin, View):
             return redirect("surf_sessions:session_detail", pk=session.pk)
 
         conversation = Conversation.get_or_create_session_conversation(session)
-        form = MessageForm(request.POST)
+        form = MessageForm(request.POST, request.FILES)
         if form.is_valid():
             message = Message.objects.create(
                 conversation=conversation,
                 author=request.user,
                 body=form.cleaned_data["body"],
+                image=form.cleaned_data.get("image"),
             )
             create_session_message_notifications(message)
+            broadcast_chat_message(message)
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"type": "message", "message": serialize_message(message)})
         else:
             messages.error(request, "Message cannot be empty.")
 

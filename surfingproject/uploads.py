@@ -23,6 +23,10 @@ def spot_gallery_upload_path(instance, filename):
     return _secure_image_name("spot_gallery")
 
 
+def chat_message_image_upload_path(instance, filename):
+    return _secure_image_name("chat_messages")
+
+
 def normalize_uploaded_image(image_file, upload_dir, max_size=None):
     """Return a JPEG upload with a server-generated name and metadata stripped."""
     validate_uploaded_image(image_file, max_size=max_size)

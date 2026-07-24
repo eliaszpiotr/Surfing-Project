@@ -1,10 +1,9 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from django.utils.formats import date_format
-from django.utils import timezone
 
 from chat.forms import MessageForm
 from chat.models import Conversation, Message
+from chat.services import chat_group_name, serialize_message
 from notifications.services import create_direct_message_notification, create_session_message_notifications
 from surf_sessions.models import Session
 from surfingproject.rate_limits import TOO_MANY_REQUESTS_MESSAGE, get_rate_limit, is_rate_limited
@@ -25,7 +24,7 @@ class BaseChatConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4403)
             return
 
-        self.group_name = f"chat_{self.conversation.pk}"
+        self.group_name = chat_group_name(self.conversation.pk)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
@@ -123,14 +122,3 @@ class SessionChatConsumer(BaseChatConsumer):
 
     def create_notifications(self, message):
         create_session_message_notifications(message)
-
-
-def serialize_message(message):
-    created_at = timezone.localtime(message.created_at)
-    return {
-        "id": message.pk,
-        "author_id": message.author_id,
-        "author_username": message.author.username,
-        "body": message.body,
-        "created_at": date_format(created_at, "M j, Y H:i"),
-    }

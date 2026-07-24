@@ -91,6 +91,9 @@
                                         <span class="text-muted fw-normal">&middot; {{ message.created_at|date:"M j, Y H:i" }}</span>
                                     </div>
                                     <div class="chat-message-body">{{ message.body|linebreaksbr }}</div>
+                                    {% if message.image %}
+                                        <img src="{{ message.image.url }}" alt="Chat attachment" class="chat-message-image mt-2">
+                                    {% endif %}
                                 </div>
                             {% endfor %}
                         </div>
@@ -101,10 +104,20 @@
                 </div>
 
                 {% if can_access_session_chat and session_chat_form %}
-                    <form method="post" action="{% url 'chat:session_message_create' session.pk %}" data-chat-form data-chat-url="/ws/chat/session/{{ session.pk }}/">
+                    <form method="post" action="{% url 'chat:session_message_create' session.pk %}" enctype="multipart/form-data" data-chat-form data-chat-url="/ws/chat/session/{{ session.pk }}/">
                         {% csrf_token %}
+                        {{ session_chat_form.non_field_errors }}
                         <div class="mb-2">
                             {{ session_chat_form.body }}
+                            {% for error in session_chat_form.body.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-2">
+                            {{ session_chat_form.image }}
+                            {% for error in session_chat_form.image.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
                         </div>
                         <button type="submit" class="btn btn-success btn-sm">Send message</button>
                     </form>

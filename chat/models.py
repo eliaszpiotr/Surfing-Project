@@ -1,6 +1,10 @@
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
+
+from core.validators import ALLOWED_IMAGE_EXTENSIONS, validate_uploaded_image
+from surfingproject.uploads import chat_message_image_upload_path
 
 
 class Conversation(models.Model):
@@ -102,7 +106,16 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name="chat_messages",
     )
-    body = models.TextField()
+    body = models.TextField(blank=True)
+    image = models.ImageField(
+        upload_to=chat_message_image_upload_path,
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=ALLOWED_IMAGE_EXTENSIONS),
+            validate_uploaded_image,
+        ],
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -116,4 +129,3 @@ class Message(models.Model):
         """Persist the message and bump the parent conversation timestamp."""
         super().save(*args, **kwargs)
         Conversation.objects.filter(pk=self.conversation_id).update(updated_at=timezone.now())
-

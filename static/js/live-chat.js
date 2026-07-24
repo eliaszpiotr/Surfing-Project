@@ -3,6 +3,7 @@
     const messages = document.querySelector("[data-chat-messages]");
     const emptyState = document.querySelector("[data-chat-empty]");
     const bodyField = form?.querySelector("textarea[name='body']");
+    const imageField = form?.querySelector("input[type='file'][name='image']");
     if (!form || !messages || !bodyField || !window.WebSocket) {
         return;
     }
@@ -25,7 +26,10 @@
             return;
         }
 
-        const message = payload.message;
+        appendMessage(payload.message);
+    });
+
+    const appendMessage = (message) => {
         if (messages.querySelector(`[data-message-id="${message.id}"]`)) {
             return;
         }
@@ -52,11 +56,49 @@
 
         meta.append(author, time);
         item.append(meta, body);
+        if (message.image_url) {
+            const image = document.createElement("img");
+            image.src = message.image_url;
+            image.alt = "Chat attachment";
+            image.className = "chat-message-image mt-2";
+            item.append(image);
+        }
         messages.append(item);
         item.scrollIntoView({ block: "nearest" });
-    });
+    };
 
     form.addEventListener("submit", (event) => {
+        if (imageField?.files?.length) {
+            if (!isReady) {
+                return;
+            }
+
+            event.preventDefault();
+            fetch(form.action || window.location.href, {
+                method: "POST",
+                body: new FormData(form),
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("Upload failed");
+                    }
+                    return response.json();
+                })
+                .then((payload) => {
+                    if (payload.type === "message") {
+                        appendMessage(payload.message);
+                        form.reset();
+                    }
+                })
+                .catch(() => {
+                    HTMLFormElement.prototype.submit.call(form);
+                });
+            return;
+        }
+
         if (!isReady) {
             return;
         }
