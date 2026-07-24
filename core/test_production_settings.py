@@ -99,6 +99,8 @@ def test_production_settings_pass_django_deployment_checks():
             "ALLOWED_HOSTS": "example.com,www.example.com",
             "CSRF_TRUSTED_ORIGINS": "https://example.com,https://www.example.com",
             "SECURE_HSTS_SECONDS": "31536000",
+            "SECURE_HSTS_INCLUDE_SUBDOMAINS": "True",
+            "SECURE_HSTS_PRELOAD": "True",
         }
     )
 
