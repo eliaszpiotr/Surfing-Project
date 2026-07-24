@@ -54,6 +54,7 @@ SERVE_MEDIA_LOCALLY = env_bool("SERVE_MEDIA_LOCALLY", "False")
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -62,6 +63,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party apps
+    'channels',
     'django_countries',
 
     # Custom apps
@@ -116,6 +118,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'surfingproject.wsgi.application'
+ASGI_APPLICATION = 'surfingproject.asgi.application'
+CHANNEL_LAYER_REDIS_URL = os.getenv("CHANNEL_LAYER_REDIS_URL", "redis://127.0.0.1:6379/0")
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [CHANNEL_LAYER_REDIS_URL],
+        },
+    },
+}
 
 
 # Database

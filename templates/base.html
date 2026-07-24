@@ -44,8 +44,8 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'notifications:list' %}">
-                        Notifications{% if unread_notifications_count %} ({{ unread_notifications_count }}){% endif %}
+                    <a class="nav-link" href="{% url 'notifications:list' %}" data-notification-link>
+                        Notifications<span data-notification-count>{% if unread_notifications_count %} ({{ unread_notifications_count }}){% endif %}</span>
                     </a>
                 </li>
 
@@ -123,6 +123,9 @@
 
 <!-- Auto-ukrywanie alertów (zewnętrzny plik statyczny, bez inline JS) -->
 <script src="{% static 'js/alerts.js' %}"></script>
+{% if user.is_authenticated %}
+    <script src="{% static 'js/live-notifications.js' %}"></script>
+{% endif %}
 
 {% block extra_js %}{% endblock %}
 

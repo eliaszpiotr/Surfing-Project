@@ -1,11 +1,14 @@
 from datetime import timedelta
+import io
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 
 from chat.models import Conversation, Message
 from spots.models import Spot
@@ -38,6 +41,14 @@ def create_session(organizer, participant=None):
     if participant:
         session.participants.add(participant)
     return session
+
+
+def uploaded_image(name="chat.png"):
+    image = Image.new("RGB", (64, 64), color="navy")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
 
 
 @pytest.mark.django_db
@@ -112,6 +123,85 @@ def test_direct_conversation_post_creates_message(client):
 
 
 @pytest.mark.django_db
+def test_direct_conversation_post_creates_message_with_image(client):
+    sender = create_user("imageposter@test.com", "imageposter")
+    target = create_user("imagereceiver@test.com", "imagereceiver")
+    conversation = Conversation.get_or_create_direct(sender, target)
+    client.force_login(sender)
+
+    response = client.post(
+        reverse("chat:conversation_detail", args=[conversation.pk]),
+        {"body": "Photo from the beach", "image": uploaded_image()},
+        follow=False,
+    )
+
+    assert response.status_code == 302
+    message = Message.objects.get(conversation=conversation)
+    assert message.author == sender
+    assert message.body == "Photo from the beach"
+    assert message.image.name.startswith("chat_messages/")
+    assert message.image.name.endswith(".jpg")
+
+
+@pytest.mark.django_db
+def test_direct_conversation_ajax_image_upload_returns_message_payload(client):
+    sender = create_user("ajaximage@test.com", "ajaximage")
+    target = create_user("ajaximagetarget@test.com", "ajaximagetarget")
+    conversation = Conversation.get_or_create_direct(sender, target)
+    client.force_login(sender)
+
+    response = client.post(
+        reverse("chat:conversation_detail", args=[conversation.pk]),
+        {"body": "Photo over ajax", "image": uploaded_image()},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    payload = response.json()
+    message = Message.objects.get(conversation=conversation)
+    assert response.status_code == 200
+    assert payload["type"] == "message"
+    assert payload["message"]["id"] == message.pk
+    assert payload["message"]["body"] == "Photo over ajax"
+    assert payload["message"]["image_url"].startswith("/media/chat_messages/")
+
+
+@pytest.mark.django_db
+def test_direct_conversation_post_allows_image_only_message(client):
+    sender = create_user("imageonly@test.com", "imageonly")
+    target = create_user("imageonlytarget@test.com", "imageonlytarget")
+    conversation = Conversation.get_or_create_direct(sender, target)
+    client.force_login(sender)
+
+    response = client.post(
+        reverse("chat:conversation_detail", args=[conversation.pk]),
+        {"body": "", "image": uploaded_image()},
+        follow=False,
+    )
+
+    assert response.status_code == 302
+    message = Message.objects.get(conversation=conversation)
+    assert message.body == ""
+    assert message.image
+
+
+@pytest.mark.django_db
+def test_direct_conversation_post_rejects_invalid_image(client):
+    sender = create_user("badimage@test.com", "badimage")
+    target = create_user("badimagetarget@test.com", "badimagetarget")
+    conversation = Conversation.get_or_create_direct(sender, target)
+    client.force_login(sender)
+    invalid_upload = SimpleUploadedFile("bad.jpg", b"not an image", content_type="image/jpeg")
+
+    response = client.post(
+        reverse("chat:conversation_detail", args=[conversation.pk]),
+        {"body": "bad upload", "image": invalid_upload},
+    )
+
+    assert response.status_code == 200
+    assert not Message.objects.filter(conversation=conversation).exists()
+
+
+@pytest.mark.django_db
 @override_settings(
     RATE_LIMITS={
         "message_user": {"limit": 1, "window": 60},
@@ -150,6 +240,27 @@ def test_session_chat_post_allows_participant(client):
     message = Message.objects.get(conversation=conversation)
     assert message.author == participant
     assert message.body == "See you there"
+
+
+@pytest.mark.django_db
+def test_session_chat_post_allows_image_attachment(client):
+    organizer = create_user("imageorg@test.com", "imageorganizer")
+    participant = create_user("imagepart@test.com", "imageparticipant")
+    session = create_session(organizer, participant=participant)
+    client.force_login(participant)
+
+    response = client.post(
+        reverse("chat:session_message_create", args=[session.pk]),
+        {"body": "Session photo", "image": uploaded_image()},
+        follow=False,
+    )
+
+    assert response.status_code == 302
+    conversation = Conversation.objects.get(session=session)
+    message = Message.objects.get(conversation=conversation)
+    assert message.author == participant
+    assert message.body == "Session photo"
+    assert message.image.name.startswith("chat_messages/")
 
 
 @pytest.mark.django_db
