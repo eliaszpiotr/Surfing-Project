@@ -3,7 +3,9 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -106,6 +108,29 @@ def test_login_rejects_unsafe_next_and_falls_back_home(client):
 
     assert response.status_code == 302
     assert response.headers["Location"] == reverse("home")
+
+
+@pytest.mark.django_db
+@override_settings(
+    RATE_LIMITS={
+        "login_ip": {"limit": 2, "window": 60},
+        "login_account": {"limit": 20, "window": 60},
+    }
+)
+def test_login_is_rate_limited_by_ip(client):
+    user = create_user("limited@test.com", "limited")
+    cache.clear()
+
+    url = reverse("accounts:login")
+    for _ in range(2):
+        response = client.post(url, {"username": user.email, "password": "wrong"}, REMOTE_ADDR="203.0.113.7")
+        assert response.status_code == 200
+
+    response = client.post(url, {"username": user.email, "password": "wrong"}, REMOTE_ADDR="203.0.113.7")
+
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "60"
+    cache.clear()
 
 
 @pytest.mark.django_db
@@ -248,6 +273,26 @@ def test_follow_toggle_does_not_allow_following_self(client):
     assert response.status_code == 302
     user.refresh_from_db()
     assert user.following_count == 0
+
+
+@pytest.mark.django_db
+@override_settings(
+    RATE_LIMITS={
+        "follow_user": {"limit": 1, "window": 60},
+    }
+)
+def test_follow_toggle_is_rate_limited(client):
+    follower = create_user("followlimit@test.com", "followlimit")
+    first_target = create_user("firsttarget@test.com", "firsttarget")
+    second_target = create_user("secondtarget@test.com", "secondtarget")
+    cache.clear()
+    client.force_login(follower)
+
+    assert client.post(reverse("accounts:follow_toggle", args=[first_target.username])).status_code == 302
+    response = client.post(reverse("accounts:follow_toggle", args=[second_target.username]))
+
+    assert response.status_code == 429
+    cache.clear()
 
 
 @pytest.mark.django_db

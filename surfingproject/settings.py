@@ -27,6 +27,11 @@ def env_list(name, default=""):
     value = os.getenv(name, default)
     return [item.strip() for item in value.split(",") if item.strip()]
 
+
+def env_int(name, default):
+    """Parse an integer environment variable with a safe default."""
+    return int(os.getenv(name, str(default)))
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -184,6 +189,25 @@ STORAGES = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Request/upload caps provide a first line of defense against oversized payloads.
+DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("DATA_UPLOAD_MAX_MEMORY_SIZE", 5 * 1024 * 1024)
+FILE_UPLOAD_MAX_MEMORY_SIZE = env_int("FILE_UPLOAD_MAX_MEMORY_SIZE", 5 * 1024 * 1024)
+
+# Rate limits are enforced via Django's cache. In multi-process production,
+# configure a shared cache backend to make these limits global.
+TRUST_PROXY_HEADERS = env_bool("TRUST_PROXY_HEADERS", "False")
+RATE_LIMITS = {
+    "login_ip": {"limit": 10, "window": 60},
+    "login_account": {"limit": 10, "window": 15 * 60},
+    "register_ip": {"limit": 5, "window": 5 * 60},
+    "register_email": {"limit": 5, "window": 15 * 60},
+    "follow_user": {"limit": 60, "window": 5 * 60},
+    "conversation_start_user": {"limit": 30, "window": 5 * 60},
+    "message_user": {"limit": 30, "window": 60},
+    "session_write_user": {"limit": 30, "window": 5 * 60},
+    "upload_user": {"limit": 20, "window": 60 * 60},
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
