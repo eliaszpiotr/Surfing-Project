@@ -79,11 +79,14 @@ AUTH_USER_MODEL = "accounts.CustomUser"
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "accounts:profile"
 LOGOUT_REDIRECT_URL = "/"
+ADMIN_URL_PATH = os.getenv("ADMIN_URL_PATH", "admin/").strip("/") + "/"
+ADMIN_ALLOWED_IPS = env_list("ADMIN_ALLOWED_IPS")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'surfingproject.middleware.PathSecurityMiddleware',
+    'surfingproject.middleware.AdminSecurityMiddleware',
     'surfingproject.middleware.SecurityHeadersMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -202,6 +205,8 @@ TRUST_PROXY_HEADERS = env_bool("TRUST_PROXY_HEADERS", "False")
 RATE_LIMITS = {
     "login_ip": {"limit": 10, "window": 60},
     "login_account": {"limit": 10, "window": 15 * 60},
+    "admin_login_ip": {"limit": 5, "window": 5 * 60},
+    "admin_login_account": {"limit": 5, "window": 15 * 60},
     "register_ip": {"limit": 5, "window": 5 * 60},
     "register_email": {"limit": 5, "window": 15 * 60},
     "follow_user": {"limit": 60, "window": 5 * 60},
