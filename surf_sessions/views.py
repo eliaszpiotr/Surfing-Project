@@ -16,6 +16,7 @@ from .forms import SessionForm
 from spots.models import Spot
 from chat.forms import MessageForm
 from chat.models import Conversation
+from surfingproject.rate_limits import rate_limited_response, user_or_ip_identifier
 
 
 class SessionListView(LoginRequiredMixin, ListView):
@@ -81,6 +82,11 @@ class SessionCreateView(LoginRequiredMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         """Optionally bind the form to a specific spot from ?spot=<id>."""
+        if request.method == "POST":
+            limited = rate_limited_response(request, "session_write_user", user_or_ip_identifier(request))
+            if limited:
+                return limited
+
         spot_id = request.GET.get("spot")
         self.spot = get_object_or_404(Spot, pk=spot_id) if spot_id else None
         return super().dispatch(request, *args, **kwargs)
@@ -126,6 +132,10 @@ class SessionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         """Save changes and redirect to the session detail page."""
+        limited = rate_limited_response(self.request, "session_write_user", user_or_ip_identifier(self.request))
+        if limited:
+            return limited
+
         session = form.save()
         messages.success(self.request, "Session updated.")
         return redirect("surf_sessions:session_detail", pk=session.pk)
@@ -157,6 +167,10 @@ class SessionJoinView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         """Add the current user to the session's participants if eligible."""
+        limited = rate_limited_response(request, "session_write_user", user_or_ip_identifier(request))
+        if limited:
+            return limited
+
         session = get_object_or_404(Session, pk=pk)
         if not session.can_join(request.user):
             messages.error(request, "You cannot join this session.")
@@ -172,6 +186,10 @@ class SessionLeaveView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         """Remove the current user from the session's participants."""
+        limited = rate_limited_response(request, "session_write_user", user_or_ip_identifier(request))
+        if limited:
+            return limited
+
         session = get_object_or_404(Session, pk=pk)
         try:
             session.remove_participant(request.user)

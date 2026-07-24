@@ -14,6 +14,7 @@ from django.template.response import TemplateResponse
 from .forms import SpotForm, SpotPhotoForm
 from .models import Spot
 from surf_sessions.models import Session
+from surfingproject.rate_limits import rate_limited_response, user_or_ip_identifier
 
 SPOTS_PER_PAGE = 21
 
@@ -173,6 +174,14 @@ class SpotCreateView(LoginRequiredMixin, CreateView):
     login_url = "accounts:login"
     redirect_field_name = "next"
 
+    def post(self, request, *args, **kwargs):
+        if request.FILES:
+            limited = rate_limited_response(request, "upload_user", user_or_ip_identifier(request))
+            if limited:
+                return limited
+
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         """Assign the current user as author; slug is generated in model.save()."""
         spot = form.save(commit=False)
@@ -201,6 +210,14 @@ class SpotUpdateView(LoginRequiredMixin, SpotAuthorOrStaffRequiredMixin, UpdateV
 
     login_url = "accounts:login"
     redirect_field_name = "next"
+
+    def post(self, request, *args, **kwargs):
+        if request.FILES:
+            limited = rate_limited_response(request, "upload_user", user_or_ip_identifier(request))
+            if limited:
+                return limited
+
+        return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
         """Preserve the original author; slug is regenerated in model.save() if empty."""
@@ -268,6 +285,10 @@ class SpotPhotoCreateView(LoginRequiredMixin, View):
 
     def post(self, request, slug):
         """Create a new photo entry or re-render the detail page with errors."""
+        limited = rate_limited_response(request, "upload_user", user_or_ip_identifier(request))
+        if limited:
+            return limited
+
         spot = get_object_or_404(Spot, slug=slug)
         form = SpotPhotoForm(request.POST, request.FILES)
 

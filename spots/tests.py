@@ -3,8 +3,10 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -83,6 +85,38 @@ def test_authenticated_user_can_add_photo_to_spot(client, user, spot):
     photo = SpotPhoto.objects.get(spot=spot)
     assert photo.author == user
     assert photo.caption == "Clean evening lines"
+
+
+@pytest.mark.django_db
+@override_settings(
+    RATE_LIMITS={
+        "upload_user": {"limit": 1, "window": 60},
+    }
+)
+def test_spot_photo_upload_is_rate_limited(client, user, spot):
+    cache.clear()
+    client.force_login(user)
+    url = reverse("spots:spot_photo_create", args=[spot.slug])
+
+    assert client.post(
+        url,
+        {
+            "caption": "First",
+            "image": make_image_upload(name="first.jpg"),
+        },
+    ).status_code == 302
+
+    response = client.post(
+        url,
+        {
+            "caption": "Second",
+            "image": make_image_upload(name="second.jpg"),
+        },
+    )
+
+    assert response.status_code == 429
+    assert SpotPhoto.objects.filter(spot=spot).count() == 1
+    cache.clear()
 
 
 @pytest.mark.django_db

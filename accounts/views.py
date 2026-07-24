@@ -19,6 +19,12 @@ from .models import UserProfile
 from notifications.services import create_follow_notification
 from spots.models import SpotPhoto
 from surf_sessions.models import Session
+from surfingproject.rate_limits import (
+    client_ip_identifier,
+    posted_value_identifier,
+    rate_limited_response,
+    user_or_ip_identifier,
+)
 
 User = get_user_model()
 
@@ -63,6 +69,17 @@ class RegisterView(FormView):
     form_class = CustomUserCreationForm
     success_url = reverse_lazy("accounts:profile_settings")
 
+    def post(self, request, *args, **kwargs):
+        limited = rate_limited_response(request, "register_ip", client_ip_identifier(request))
+        if limited:
+            return limited
+
+        limited = rate_limited_response(request, "register_email", posted_value_identifier(request, "email"))
+        if limited:
+            return limited
+
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         """Save the new user, log them in, and proceed to success URL."""
         user = form.save()
@@ -82,6 +99,17 @@ class CustomLoginView(LoginView):
     template_name = "accounts/login.html"
     authentication_form = CustomAuthenticationForm
     redirect_authenticated_user = True
+
+    def post(self, request, *args, **kwargs):
+        limited = rate_limited_response(request, "login_ip", client_ip_identifier(request))
+        if limited:
+            return limited
+
+        limited = rate_limited_response(request, "login_account", posted_value_identifier(request, "username"))
+        if limited:
+            return limited
+
+        return super().post(request, *args, **kwargs)
 
     def get_success_url(self):
         """Redirect to 'next' if safe, otherwise fall back to home."""
@@ -131,6 +159,14 @@ class ProfileSettingsView(LoginRequiredMixin, UpdateView):
         """Return the profile belonging to the current user."""
         return self.request.user.profile
 
+    def post(self, request, *args, **kwargs):
+        if request.FILES:
+            limited = rate_limited_response(request, "upload_user", user_or_ip_identifier(request))
+            if limited:
+                return limited
+
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         messages.success(self.request, "Your profile has been updated.")
         return super().form_valid(form)
@@ -159,6 +195,10 @@ class FollowToggleView(LoginRequiredMixin, View):
     login_url = "accounts:login"
 
     def post(self, request, username):
+        limited = rate_limited_response(request, "follow_user", user_or_ip_identifier(request))
+        if limited:
+            return limited
+
         target_user = get_object_or_404(User, username=username)
 
         if request.user == target_user:

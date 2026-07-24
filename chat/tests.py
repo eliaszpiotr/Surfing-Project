@@ -2,6 +2,8 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -107,6 +109,27 @@ def test_direct_conversation_post_creates_message(client):
     message = Message.objects.get(conversation=conversation)
     assert message.author == sender
     assert message.body == "Hello there"
+
+
+@pytest.mark.django_db
+@override_settings(
+    RATE_LIMITS={
+        "message_user": {"limit": 1, "window": 60},
+    }
+)
+def test_direct_message_post_is_rate_limited(client):
+    sender = create_user("limitposter@test.com", "limitposter")
+    target = create_user("limitreceiver@test.com", "limitreceiver")
+    conversation = Conversation.get_or_create_direct(sender, target)
+    cache.clear()
+    client.force_login(sender)
+
+    assert client.post(reverse("chat:conversation_detail", args=[conversation.pk]), {"body": "First"}).status_code == 302
+    response = client.post(reverse("chat:conversation_detail", args=[conversation.pk]), {"body": "Second"})
+
+    assert response.status_code == 429
+    assert Message.objects.filter(conversation=conversation).count() == 1
+    cache.clear()
 
 
 @pytest.mark.django_db

@@ -8,6 +8,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView
 
 from surf_sessions.models import Session
+from surfingproject.rate_limits import rate_limited_response, user_or_ip_identifier
 
 from .forms import MessageForm
 from .models import Conversation, Message
@@ -73,6 +74,10 @@ class DirectConversationStartView(LoginRequiredMixin, View):
     login_url = "accounts:login"
 
     def post(self, request, username):
+        limited = rate_limited_response(request, "conversation_start_user", user_or_ip_identifier(request))
+        if limited:
+            return limited
+
         target_user = get_object_or_404(User, username=username)
         if request.user == target_user:
             messages.error(request, "You cannot start a direct chat with yourself.")
@@ -97,6 +102,10 @@ class DirectConversationDetailView(ConversationAccessMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         """Persist a new direct message from the current user."""
+        limited = rate_limited_response(request, "message_user", user_or_ip_identifier(request))
+        if limited:
+            return limited
+
         self.object = self.get_object()
         form = MessageForm(request.POST)
         if form.is_valid():
@@ -118,6 +127,10 @@ class SessionMessageCreateView(LoginRequiredMixin, View):
     login_url = "accounts:login"
 
     def post(self, request, session_pk):
+        limited = rate_limited_response(request, "message_user", user_or_ip_identifier(request))
+        if limited:
+            return limited
+
         session = get_object_or_404(Session.objects.select_related("organizer"), pk=session_pk)
         can_access = request.user == session.organizer or session.participants.filter(pk=request.user.pk).exists()
         if not can_access:
