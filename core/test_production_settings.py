@@ -98,6 +98,7 @@ def test_production_settings_pass_django_deployment_checks():
             "SECRET_KEY": VALID_SECRET_KEY,
             "ALLOWED_HOSTS": "example.com,www.example.com",
             "CSRF_TRUSTED_ORIGINS": "https://example.com,https://www.example.com",
+            "SECURE_HSTS_SECONDS": "31536000",
         }
     )
 
