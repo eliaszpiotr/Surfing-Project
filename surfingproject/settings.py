@@ -21,6 +21,12 @@ def env_bool(name, default="False"):
     """Parse common truthy environment variable values."""
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
+
+def env_list(name, default=""):
+    """Parse a comma-separated environment variable into a clean list."""
+    value = os.getenv(name, default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -35,8 +41,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = env_bool("DEBUG", "False")
 
 # Prevent accepting all hosts when env var is missing
-_allowed = os.getenv("ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [h for h in _allowed.split(",") if h]
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 SERVE_MEDIA_LOCALLY = env_bool("SERVE_MEDIA_LOCALLY", "False")
 
 
