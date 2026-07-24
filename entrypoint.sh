@@ -1,7 +1,22 @@
 #!/bin/sh
 set -eu
 
+DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-surfingproject.settings}"
+export DJANGO_SETTINGS_MODULE
+
+is_true() {
+  case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 if [ -z "${SECRET_KEY:-}" ]; then
+  if [ "$DJANGO_SETTINGS_MODULE" = "surfingproject.production_settings" ]; then
+    echo "SECRET_KEY is required when using surfingproject.production_settings." >&2
+    exit 1
+  fi
+
   export SECRET_KEY="$(python - <<'PY'
 from django.core.management.utils import get_random_secret_key
 print(get_random_secret_key())
@@ -47,6 +62,10 @@ if [ "${RUN_COLLECTSTATIC:-1}" = "1" ]; then
 fi
 
 if [ "${RUN_DEMO_SEED:-0}" = "1" ]; then
+  if ! is_true "${DEBUG:-False}"; then
+    echo "RUN_DEMO_SEED is only allowed when DEBUG=True." >&2
+    exit 1
+  fi
   python manage.py seed_demo
 fi
 

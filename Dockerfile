@@ -17,7 +17,12 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . /app/
 
-RUN chmod +x /app/entrypoint.sh
+RUN useradd --system --create-home --home-dir /app --shell /usr/sbin/nologin appuser && \
+    mkdir -p /app/staticfiles /app/media && \
+    chmod +x /app/entrypoint.sh && \
+    chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8000
 

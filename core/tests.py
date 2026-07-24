@@ -4,6 +4,7 @@ import importlib
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.core.files.base import ContentFile
 from django.urls import clear_url_caches
 from django.urls import reverse
@@ -95,6 +96,7 @@ def test_home_links_session_organizer_to_public_profile(client):
 
 
 @pytest.mark.django_db
+@override_settings(DEBUG=True)
 def test_seed_demo_rebuilds_missing_media_files():
     call_command("seed_demo")
 
@@ -117,6 +119,13 @@ def test_seed_demo_rebuilds_missing_media_files():
 
     assert user.profile.profile_picture.storage.exists(user.profile.profile_picture.name)
     assert photo.image.storage.exists(photo.image.name)
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=False)
+def test_seed_demo_is_blocked_when_debug_is_false():
+    with pytest.raises(CommandError, match="seed_demo can only run when DEBUG=True"):
+        call_command("seed_demo")
 
 
 @pytest.mark.django_db

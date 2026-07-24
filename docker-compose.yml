@@ -20,15 +20,11 @@ services:
       db:
         condition: service_healthy
     environment:
+      DJANGO_SETTINGS_MODULE: ${DOCKER_DJANGO_SETTINGS_MODULE:-surfingproject.settings}
       SECRET_KEY: ${DOCKER_SECRET_KEY:-}
-      DEBUG: "False"
+      DEBUG: ${DOCKER_DEBUG:-False}
       ALLOWED_HOSTS: ${DOCKER_ALLOWED_HOSTS:-127.0.0.1,localhost}
-      SECURE_SSL_REDIRECT: ${DOCKER_SECURE_SSL_REDIRECT:-False}
-      SESSION_COOKIE_SECURE: ${DOCKER_SESSION_COOKIE_SECURE:-False}
-      CSRF_COOKIE_SECURE: ${DOCKER_CSRF_COOKIE_SECURE:-False}
-      SECURE_HSTS_SECONDS: ${DOCKER_SECURE_HSTS_SECONDS:-0}
-      SECURE_HSTS_INCLUDE_SUBDOMAINS: ${DOCKER_SECURE_HSTS_INCLUDE_SUBDOMAINS:-False}
-      SECURE_HSTS_PRELOAD: ${DOCKER_SECURE_HSTS_PRELOAD:-False}
+      CSRF_TRUSTED_ORIGINS: ${DOCKER_CSRF_TRUSTED_ORIGINS:-}
       SERVE_MEDIA_LOCALLY: ${DOCKER_SERVE_MEDIA_LOCALLY:-True}
       DB_ENGINE: postgresql
       DB_NAME: ${DOCKER_DB_NAME:-surfing}
@@ -38,9 +34,13 @@ services:
       DB_PORT: 5432
       SQLITE_NAME: db.sqlite3
       RUN_COLLECTSTATIC: ${DOCKER_RUN_COLLECTSTATIC:-1}
-      RUN_DEMO_SEED: ${DOCKER_RUN_DEMO_SEED:-1}
+      RUN_DEMO_SEED: ${DOCKER_RUN_DEMO_SEED:-0}
     ports:
       - "127.0.0.1:8000:8000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - media_data:/app/media
 

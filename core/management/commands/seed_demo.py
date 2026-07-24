@@ -1,9 +1,10 @@
 import io
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from PIL import Image, ImageDraw
 
@@ -176,6 +177,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Populate the database with deterministic demo data without duplicating rows."""
+        if not settings.DEBUG:
+            raise CommandError("seed_demo can only run when DEBUG=True.")
+
         users = self._seed_users()
         spots = self._seed_spots(users)
         self._seed_sessions(users, spots)
