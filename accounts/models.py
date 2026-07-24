@@ -1,38 +1,19 @@
-import io
-
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django_countries.fields import CountryField
-from PIL import Image
 
 from .managers import CustomUserManager
 from django.conf import settings
-
-
-def validate_image_content(file):
-    """
-    Verify that a freshly uploaded file is a genuine image by decoding it with Pillow.
-
-    Only runs on new uploads (UploadedFile instances). Existing FieldFile references
-    are skipped so editing a profile without changing the picture never fails here.
-    """
-    if not isinstance(file, UploadedFile):
-        return
-    try:
-        data = file.read()
-        img = Image.open(io.BytesIO(data))
-        img.verify()
-    except Exception:
-        raise ValidationError(
-            "Uploaded file is not a valid image. "
-            "Please upload a JPG, PNG or WebP file."
-        )
-    finally:
-        if hasattr(file, "seek"):
-            file.seek(0)
+from core.validators import (
+    ALLOWED_IMAGE_EXTENSIONS,
+    validate_uploaded_image,
+    validate_uploaded_image as validate_image_content,
+)
+from surfingproject.uploads import (
+    profile_picture_upload_path,
+)
 
 
 class CustomUser(AbstractUser):
@@ -82,12 +63,12 @@ class UserProfile(models.Model):
     bio = models.TextField(blank=True)
     country = CountryField(blank_label='(select country)', blank=True, null=True)
     profile_picture = models.ImageField(
-        upload_to="profile_pictures/",
+        upload_to=profile_picture_upload_path,
         default="profile_pictures/default_profile.jpg",
         blank=True,
         validators=[
-            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"]),
-            validate_image_content,
+            FileExtensionValidator(allowed_extensions=ALLOWED_IMAGE_EXTENSIONS),
+            validate_uploaded_image,
         ],
     )
 
@@ -97,9 +78,20 @@ class UserProfile(models.Model):
         if not self.profile_picture:
             return
 
+        max_size = 5 * 1024 * 1024
         uploaded = getattr(self.profile_picture, "_file", None)
-        if uploaded and hasattr(uploaded, "size") and uploaded.size > 5 * 1024 * 1024:
-            raise ValidationError({"profile_picture": "Image must be under 5MB."})
+        if uploaded:
+            try:
+                validate_uploaded_image(uploaded, max_size=max_size)
+            except ValidationError as exc:
+                raise ValidationError({"profile_picture": exc.messages})
+            return
+
+        try:
+            if hasattr(self.profile_picture, "size") and self.profile_picture.size > max_size:
+                raise ValidationError({"profile_picture": "Image must be under 5MB."})
+        except OSError:
+            return
 
     def __str__(self):
         """Return the linked user's username, falling back to email."""

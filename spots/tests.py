@@ -85,6 +85,11 @@ def test_authenticated_user_can_add_photo_to_spot(client, user, spot):
     photo = SpotPhoto.objects.get(spot=spot)
     assert photo.author == user
     assert photo.caption == "Clean evening lines"
+    assert photo.image.name.startswith("spot_gallery/")
+    assert "wave" not in photo.image.name
+
+    with photo.image.open("rb") as image_file:
+        assert Image.open(image_file).format == "JPEG"
 
 
 @pytest.mark.django_db
@@ -223,6 +228,27 @@ def test_spot_form_rejects_invalid_image_content():
         },
         files={
             "image": SimpleUploadedFile("fake.jpg", b"not-an-image", content_type="image/jpeg"),
+        },
+    )
+
+    assert not form.is_valid()
+    assert "image" in form.errors
+
+
+@override_settings(IMAGE_UPLOAD_MAX_PIXELS=32 * 32 - 1)
+def test_spot_form_rejects_images_with_too_many_pixels():
+    form = SpotForm(
+        data={
+            "name": "Hel",
+            "country": "PL",
+            "difficulty": "beginner",
+            "surf_break_type": "beach_break",
+            "wave_direction": "a_frame",
+            "latitude": "",
+            "longitude": "",
+        },
+        files={
+            "image": make_image_upload(name="too-large-pixels.jpg"),
         },
     )
 

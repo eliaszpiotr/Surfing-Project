@@ -339,6 +339,11 @@ def test_profile_settings_updates_country_bio_and_picture(client):
     assert str(user.profile.country) == "DK"
     assert user.profile.bio == "Cold-water surfer"
     assert user.profile.profile_picture.name.endswith(".jpg")
+    assert user.profile.profile_picture.name.startswith("profile_pictures/")
+    assert "avatar" not in user.profile.profile_picture.name
+
+    with user.profile.profile_picture.open("rb") as image_file:
+        assert Image.open(image_file).format == "JPEG"
 
 
 @pytest.mark.django_db
@@ -352,6 +357,26 @@ def test_profile_settings_rejects_invalid_image_upload(client):
             "country": "DK",
             "bio": "Still testing",
             "profile_picture": SimpleUploadedFile("fake.jpg", b"not-an-image", content_type="image/jpeg"),
+        },
+        follow=False,
+    )
+
+    assert response.status_code == 200
+    assert "profile_picture" in response.context["form"].errors
+
+
+@pytest.mark.django_db
+@override_settings(IMAGE_UPLOAD_MAX_PIXELS=32 * 32 - 1)
+def test_profile_settings_rejects_images_with_too_many_pixels(client):
+    user = create_user("largepic@test.com", "largepic")
+    client.force_login(user)
+
+    response = client.post(
+        reverse("accounts:profile_settings"),
+        {
+            "country": "DK",
+            "bio": "Still testing",
+            "profile_picture": make_profile_image(name="oversized-pixels.jpg"),
         },
         follow=False,
     )

@@ -193,6 +193,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Request/upload caps provide a first line of defense against oversized payloads.
 DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("DATA_UPLOAD_MAX_MEMORY_SIZE", 5 * 1024 * 1024)
 FILE_UPLOAD_MAX_MEMORY_SIZE = env_int("FILE_UPLOAD_MAX_MEMORY_SIZE", 5 * 1024 * 1024)
+DATA_UPLOAD_MAX_NUMBER_FILES = env_int("DATA_UPLOAD_MAX_NUMBER_FILES", 5)
+IMAGE_UPLOAD_MAX_PIXELS = env_int("IMAGE_UPLOAD_MAX_PIXELS", 20_000_000)
 
 # Rate limits are enforced via Django's cache. In multi-process production,
 # configure a shared cache backend to make these limits global.

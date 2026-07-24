@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
 from .models import UserProfile
+from surfingproject.uploads import normalize_uploaded_image
 
 User = get_user_model()
 
@@ -101,6 +102,12 @@ class CustomAuthenticationForm(AuthenticationForm):
 
 
 class UserProfileForm(forms.ModelForm):
+    def clean_profile_picture(self):
+        image = self.cleaned_data.get("profile_picture")
+        if not image:
+            return image
+        return normalize_uploaded_image(image, "profile_pictures", max_size=5 * 1024 * 1024)
+
     class Meta:
         model = UserProfile
         fields = ["profile_picture", "country", "bio"]

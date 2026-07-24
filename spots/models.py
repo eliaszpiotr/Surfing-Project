@@ -1,31 +1,18 @@
-import io
-
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import FileExtensionValidator, MinValueValidator, MaxValueValidator
 from django.db import models
 from django_countries.fields import CountryField
 from django.utils.text import slugify
-from PIL import Image
-
-
-def validate_image_content(file):
-    """Verify that a freshly uploaded file is a genuine image."""
-    if not isinstance(file, UploadedFile):
-        return
-    try:
-        data = file.read()
-        img = Image.open(io.BytesIO(data))
-        img.verify()
-    except Exception:
-        raise ValidationError(
-            "Uploaded file is not a valid image. "
-            "Please upload a JPG, PNG or WebP file."
-        )
-    finally:
-        if hasattr(file, "seek"):
-            file.seek(0)
+from core.validators import (
+    ALLOWED_IMAGE_EXTENSIONS,
+    validate_uploaded_image,
+    validate_uploaded_image as validate_image_content,
+)
+from surfingproject.uploads import (
+    spot_gallery_upload_path,
+    spot_image_upload_path,
+)
 
 
 class Spot(models.Model):
@@ -109,7 +96,15 @@ class Spot(models.Model):
     description = models.TextField(blank=True, help_text="General description of the vibe and spot")
 
     # --- MEDIA ---
-    image = models.ImageField(upload_to='spots_images/', blank=True, null=True)
+    image = models.ImageField(
+        upload_to=spot_image_upload_path,
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=ALLOWED_IMAGE_EXTENSIONS),
+            validate_uploaded_image,
+        ],
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -149,10 +144,10 @@ class SpotPhoto(models.Model):
         related_name="spot_photos",
     )
     image = models.ImageField(
-        upload_to="spot_gallery/",
+        upload_to=spot_gallery_upload_path,
         validators=[
-            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"]),
-            validate_image_content,
+            FileExtensionValidator(allowed_extensions=ALLOWED_IMAGE_EXTENSIONS),
+            validate_uploaded_image,
         ],
     )
     caption = models.CharField(max_length=200)
@@ -164,8 +159,19 @@ class SpotPhoto(models.Model):
     def clean(self):
         """Enforce a 10 MB size limit on uploaded spot photos."""
         super().clean()
-        if self.image and hasattr(self.image, "size") and self.image.size > 10 * 1024 * 1024:
+        if not self.image:
+            return
+
+        max_size = 10 * 1024 * 1024
+        if hasattr(self.image, "size") and self.image.size > max_size:
             raise ValidationError({"image": "Image must be under 10MB."})
+
+        uploaded = getattr(self.image, "_file", self.image)
+        if uploaded is not self.image:
+            try:
+                validate_uploaded_image(uploaded, max_size=max_size)
+            except ValidationError as exc:
+                raise ValidationError({"image": exc.messages})
 
     def __str__(self):
         """Return a short label for the photo entry."""
