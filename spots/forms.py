@@ -1,29 +1,8 @@
-import io
-
 from django import forms
 from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import UploadedFile
-from PIL import Image
 
 from .models import Spot, SpotPhoto
-
-
-def _validate_image_content(image_file):
-    """Raise ValidationError if a freshly uploaded file is not a valid image according to Pillow."""
-    if not isinstance(image_file, UploadedFile):
-        return
-    try:
-        data = image_file.read()
-        img = Image.open(io.BytesIO(data))
-        img.verify()
-    except Exception:
-        raise ValidationError(
-            "Uploaded file is not a valid image. "
-            "Please upload a JPG, PNG or WebP file."
-        )
-    finally:
-        if hasattr(image_file, "seek"):
-            image_file.seek(0)
+from surfingproject.uploads import normalize_uploaded_image
 
 
 class SpotForm(forms.ModelForm):
@@ -68,12 +47,9 @@ class SpotForm(forms.ModelForm):
     def clean_image(self):
         """Enforce 10 MB size limit and verify that the uploaded file is a real image."""
         image = self.cleaned_data.get("image")
-        if not image or not hasattr(image, "size"):
+        if not image:
             return image
-        if image.size > 10 * 1024 * 1024:
-            raise ValidationError("Image must be under 10MB.")
-        _validate_image_content(image)
-        return image
+        return normalize_uploaded_image(image, "spots_images", max_size=10 * 1024 * 1024)
 
     def clean(self):
         """Require both latitude and longitude to be set, or both to be empty."""
@@ -106,9 +82,6 @@ class SpotPhotoForm(forms.ModelForm):
     def clean_image(self):
         """Enforce image validation consistently at form level."""
         image = self.cleaned_data.get("image")
-        if not image or not hasattr(image, "size"):
+        if not image:
             return image
-        if image.size > 10 * 1024 * 1024:
-            raise ValidationError("Image must be under 10MB.")
-        _validate_image_content(image)
-        return image
+        return normalize_uploaded_image(image, "spot_gallery", max_size=10 * 1024 * 1024)
