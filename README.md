@@ -143,6 +143,12 @@ The current container setup is designed for local/demo usage:
 - `DEBUG=False` by default
 - local media served explicitly for demo purposes
 
+## Backup And Restore
+
+Operational backup and restore procedures are documented in
+[docs/backup_restore.md](docs/backup_restore.md). Backups include both the
+PostgreSQL database and uploaded media files.
+
 ## Demo Data
 
 The demo seed creates:

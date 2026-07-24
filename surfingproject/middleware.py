@@ -1,6 +1,14 @@
 import re
 
-from django.http import HttpResponseBadRequest
+from django.conf import settings
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
+
+from surfingproject.rate_limits import (
+    client_ip_identifier,
+    get_client_ip,
+    posted_value_identifier,
+    rate_limited_response,
+)
 
 
 # Path traversal patterns — raw and URL-encoded variants
@@ -53,6 +61,37 @@ class PathSecurityMiddleware:
 
         if _NULL_BYTE_RE.search(full_path):
             return HttpResponseBadRequest("Invalid path.")
+
+        return self.get_response(request)
+
+
+class AdminSecurityMiddleware:
+    """Restrict and rate-limit access to Django admin endpoints."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        admin_path = "/" + settings.ADMIN_URL_PATH.strip("/") + "/"
+        if not request.path_info.startswith(admin_path):
+            return self.get_response(request)
+
+        allowed_ips = getattr(settings, "ADMIN_ALLOWED_IPS", [])
+        if allowed_ips and get_client_ip(request) not in allowed_ips:
+            return HttpResponseForbidden("Admin access is restricted.")
+
+        if request.method == "POST" and request.path_info == f"{admin_path}login/":
+            limited = rate_limited_response(request, "admin_login_ip", client_ip_identifier(request))
+            if limited:
+                return limited
+
+            limited = rate_limited_response(
+                request,
+                "admin_login_account",
+                posted_value_identifier(request, "username"),
+            )
+            if limited:
+                return limited
 
         return self.get_response(request)
 
