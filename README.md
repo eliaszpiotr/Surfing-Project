@@ -113,16 +113,22 @@ This will:
 - build the Django image
 - apply migrations
 - collect static files
-- seed demo data automatically
 - run the app with Gunicorn
 
 ### Open The App
 
 Open: [http://localhost:8000](http://localhost:8000)
 
-### Demo Accounts
+### Optional Demo Accounts
 
-The Docker setup seeds demo accounts automatically:
+Demo data is disabled by default. To load demo accounts in a local/demo
+container, run Docker with demo mode enabled:
+
+```bash
+DOCKER_DEBUG=True DOCKER_RUN_DEMO_SEED=1 docker compose up --build
+```
+
+This creates:
 
 - `demo.anna@example.com` / `pass1234`
 - `demo.marc@example.com` / `pass1234`
@@ -134,7 +140,7 @@ The current container setup is designed for local/demo usage:
 
 - app bound to `127.0.0.1:8000`
 - PostgreSQL not exposed publicly
-- `DEBUG=False`
+- `DEBUG=False` by default
 - local media served explicitly for demo purposes
 
 ## Demo Data
