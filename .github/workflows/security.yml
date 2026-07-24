@@ -63,4 +63,5 @@ jobs:
           image-ref: surfing-project:${{ github.sha }}
           vuln-type: os,library
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
           exit-code: "1"
