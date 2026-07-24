@@ -11,6 +11,10 @@
     display: none;
 }
 
+.chat-message-body {
+    white-space: pre-line;
+}
+
 /* Home */
 #home-map {
     height: 420px;

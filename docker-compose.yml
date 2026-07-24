@@ -13,11 +13,24 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - redis_data:/data
+
   web:
     build:
       context: .
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       DJANGO_SETTINGS_MODULE: ${DOCKER_DJANGO_SETTINGS_MODULE:-surfingproject.settings}
@@ -32,6 +45,7 @@ services:
       DB_PASSWORD: ${DOCKER_DB_PASSWORD:-surfing}
       DB_HOST: db
       DB_PORT: 5432
+      CHANNEL_LAYER_REDIS_URL: ${DOCKER_CHANNEL_LAYER_REDIS_URL:-redis://redis:6379/0}
       SQLITE_NAME: db.sqlite3
       RUN_COLLECTSTATIC: ${DOCKER_RUN_COLLECTSTATIC:-1}
       RUN_DEMO_SEED: ${DOCKER_RUN_DEMO_SEED:-0}
@@ -47,3 +61,4 @@ services:
 volumes:
   postgres_data:
   media_data:
+  redis_data:
